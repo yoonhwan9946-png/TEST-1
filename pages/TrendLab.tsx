@@ -5,7 +5,7 @@ import { Search, Sparkles, ArrowUpRight, ArrowRight, Loader2, X, Hash, Calendar,
 import { fetchTrendAnalysis } from '../services/geminiService';
 import { TrendResult, TrendItem } from '../types';
 
-// --- Mock Data for Archive with Gallery ---
+// ... (Mock Data & Content same as before) ...
 const TREND_CATEGORIES = ['All', 'Sustainability', 'Technology', 'Materiality', 'Social', 'Urbanism'];
 
 const DUMMY_CONTENT = `
@@ -40,6 +40,7 @@ const DUMMY_CONTENT = `
 `;
 
 const TREND_ARCHIVE: TrendItem[] = [
+  // ... (Same mock archive items) ...
   {
     id: 1,
     category: "Sustainability",
@@ -148,35 +149,26 @@ const TrendLab: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Archive State - Now includes both static and user-created posts
   const [archiveData, setArchiveData] = useState<TrendItem[]>(TREND_ARCHIVE);
   const [activeCategory, setActiveCategory] = useState('All');
 
-  // AI Analyzer State
   const [isAnalyzerOpen, setIsAnalyzerOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<TrendResult | null>(null);
 
-  // --- Full Screen Viewer State ---
   const [selectedTrend, setSelectedTrend] = useState<TrendItem | null>(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-  
-  // Drag / Swipe Logic State
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
   const sliderRef = useRef<HTMLDivElement>(null);
-
-  // Scroll Sync State for Blog View
   const [scrollProgress, setScrollProgress] = useState(0);
 
   const filteredTrends = activeCategory === 'All' 
     ? archiveData 
     : archiveData.filter(item => item.category === activeCategory);
 
-
-  // --- Viewer Handlers ---
   const openViewer = (item: TrendItem) => {
       setSelectedTrend(item);
       setCurrentSlideIndex(0);
@@ -184,9 +176,7 @@ const TrendLab: React.FC = () => {
       setScrollProgress(0);
   };
 
-  // Load user trends from LocalStorage & Handle Incoming Navigation on mount
   useEffect(() => {
-    // 1. Load LocalStorage
     const savedTrends = localStorage.getItem('ylab_trends');
     let currentArchive = [...TREND_ARCHIVE];
     
@@ -200,19 +190,16 @@ const TrendLab: React.FC = () => {
         }
     }
 
-    // 2. Check for navigation state (Deep link from Home)
     if (location.state && (location.state as any).openTrendId) {
         const targetId = (location.state as any).openTrendId;
         const targetItem = currentArchive.find(t => t.id === targetId);
         if (targetItem) {
             openViewer(targetItem);
-            // Clear state so refresh doesn't reopen (optional)
             window.history.replaceState({}, document.title);
         }
     }
-  }, [location.state]); // Depend on location.state
+  }, [location.state]);
 
-  // --- Search Handler ---
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!keyword.trim()) return;
@@ -220,8 +207,12 @@ const TrendLab: React.FC = () => {
     setIsLoading(true);
     setResult(null);
     
-    // Call Gemini Service
     const data = await fetchTrendAnalysis(keyword);
+    
+    if (!data || data.description.includes("일시적인 오류")) {
+        alert("API connection failed or key missing. Please check your deployment settings.");
+    }
+    
     setResult(data);
     setIsLoading(false);
   };
@@ -245,7 +236,6 @@ const TrendLab: React.FC = () => {
       }
   };
 
-  // --- Drag / Swipe Implementation ---
   const handleMouseDown = (e: React.MouseEvent) => {
       setIsDragging(true);
       setStartX(e.clientX);
@@ -260,14 +250,12 @@ const TrendLab: React.FC = () => {
 
   const handleMouseUp = () => {
       if (!isDragging || !selectedTrend) return;
-      
-      const threshold = 100; // Drag threshold to trigger slide change
+      const threshold = 100;
       if (dragOffset < -threshold) {
           nextSlide();
       } else if (dragOffset > threshold) {
           prevSlide();
       }
-      
       setIsDragging(false);
       setDragOffset(0);
   };
@@ -284,20 +272,16 @@ const TrendLab: React.FC = () => {
       setDragOffset(diff);
   };
 
-  // --- Scroll Effect Handler ---
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
       const scrollTop = e.currentTarget.scrollTop;
       const windowHeight = window.innerHeight;
-      
-      // Calculate progress (0 to 1) based on first screen height
       const progress = Math.min(1, scrollTop / windowHeight);
       setScrollProgress(progress);
   };
 
   return (
     <div className="min-h-screen bg-white">
-      
-      {/* --- HERO SECTION (Editorial) --- */}
+      {/* ... (Render code remains exactly same as existing file, just included to complete the update) ... */}
       <section className="relative pt-32 pb-20 px-6 lg:px-12 border-b border-slate-200">
         <div className="max-w-[1600px] mx-auto">
             <div className="flex flex-col lg:flex-row justify-between items-end gap-12">
@@ -316,7 +300,6 @@ const TrendLab: React.FC = () => {
                 </div>
                 
                 <div className="flex flex-col items-end gap-6">
-                    {/* Action Buttons */}
                     <div className="flex items-center gap-3">
                         <button 
                             onClick={() => navigate('/trend/editor')}
@@ -334,7 +317,6 @@ const TrendLab: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* Category Filter */}
                     <div className="flex flex-wrap justify-end gap-2">
                         {TREND_CATEGORIES.map(cat => (
                             <button
@@ -355,7 +337,6 @@ const TrendLab: React.FC = () => {
         </div>
       </section>
 
-      {/* --- ARCHIVE GRID (Magazine Layout) --- */}
       <section className="py-20 px-6 lg:px-12 bg-slate-50 min-h-screen">
          <div className="max-w-[1600px] mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
@@ -365,7 +346,6 @@ const TrendLab: React.FC = () => {
                         onClick={() => openViewer(item)}
                         className="group cursor-pointer flex flex-col h-full"
                     >
-                        {/* Image */}
                         <div className="relative aspect-[4/5] overflow-hidden rounded-none mb-6 bg-slate-200">
                             <img 
                                 src={item.image} 
@@ -377,14 +357,11 @@ const TrendLab: React.FC = () => {
                                     <span className="text-white text-xs font-bold bg-blue-600 px-2 py-1 inline-block mb-2">READ POST</span>
                                 </div>
                             </div>
-                            
-                            {/* Gallery Indicator Icon */}
                             <div className="absolute top-3 right-3 text-white/50 group-hover:text-white transition-colors">
                                 <GripHorizontal size={24} />
                             </div>
                         </div>
 
-                        {/* Content */}
                         <div className="flex flex-col flex-1">
                             <div className="flex justify-between items-start mb-3 border-b border-slate-200 pb-3 border-dashed">
                                 <span className="text-xs font-bold text-blue-600 uppercase tracking-wide">{item.category}</span>
@@ -392,18 +369,15 @@ const TrendLab: React.FC = () => {
                                     <Calendar size={10} /> {item.date}
                                 </span>
                             </div>
-                            
                             <h3 className="text-2xl font-bold text-slate-900 mb-1 group-hover:text-blue-700 transition-colors leading-tight">
                                 {item.title}
                             </h3>
                             <p className="text-sm text-slate-400 font-medium mb-4 italic font-serif">
                                 {item.subtitle}
                             </p>
-                            
                             <p className="text-sm text-slate-600 leading-relaxed mb-6 line-clamp-3">
                                 {item.description}
                             </p>
-
                             <div className="mt-auto pt-4 flex items-center justify-between">
                                 <div className="flex flex-wrap gap-2">
                                     {item.tags.map(tag => (
@@ -421,11 +395,8 @@ const TrendLab: React.FC = () => {
          </div>
       </section>
 
-      {/* --- BIG-Style Immersive Blog Viewer (Scroll & Parallax) --- */}
       {selectedTrend && (
           <div className="fixed inset-0 z-[200] bg-white animate-fade-in overflow-y-auto" onScroll={handleScroll}>
-              
-              {/* Sticky Close Header */}
               <div className="sticky top-0 left-0 right-0 h-20 flex items-center justify-between px-8 z-[220] mix-blend-difference text-white pointer-events-none">
                   <div className="flex items-center gap-4 pointer-events-auto">
                       <span className="text-lg font-black tracking-tighter">Y.LAB</span>
@@ -434,77 +405,27 @@ const TrendLab: React.FC = () => {
                       </span>
                   </div>
                   <div className="flex items-center gap-4 pointer-events-auto">
-                    {/* EDIT BUTTON UPDATED TO PASS STATE */}
                     <button onClick={() => navigate('/trend/editor', { state: { trend: selectedTrend } })} className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
                         <Edit3 size={24} />
                     </button>
-                    <button 
-                        onClick={closeViewer}
-                        className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
-                    >
-                        <X size={32} />
-                    </button>
+                    <button onClick={closeViewer} className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"><X size={32} /></button>
                   </div>
               </div>
 
-              {/* Slider / Carousel (Fixed Background / Parallax) */}
-              <div 
-                className="sticky top-0 w-full h-screen z-[10]"
-                style={{ 
-                    transform: `translateY(${scrollProgress * -30}vh) scale(${1 - scrollProgress * 0.05})`,
-                    opacity: 1 - scrollProgress * 0.5
-                }}
-              >
-                  <div 
-                    className="relative w-full h-full overflow-hidden bg-black select-none cursor-grab active:cursor-grabbing"
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleMouseUp}
-                    ref={sliderRef}
-                  >
-                      <div 
-                        className="flex h-full transition-transform duration-500 ease-out"
-                        style={{ 
-                            transform: `translateX(calc(-${currentSlideIndex * 100}% + ${dragOffset}px))`,
-                            width: `${selectedTrend.gallery.length * 100}%`
-                        }}
-                      >
+              <div className="sticky top-0 w-full h-screen z-[10]" style={{ transform: `translateY(${scrollProgress * -30}vh) scale(${1 - scrollProgress * 0.05})`, opacity: 1 - scrollProgress * 0.5 }}>
+                  <div className="relative w-full h-full overflow-hidden bg-black select-none cursor-grab active:cursor-grabbing" onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleMouseUp} ref={sliderRef}>
+                      <div className="flex h-full transition-transform duration-500 ease-out" style={{ transform: `translateX(calc(-${currentSlideIndex * 100}% + ${dragOffset}px))`, width: `${selectedTrend.gallery.length * 100}%` }}>
                           {selectedTrend.gallery.map((img, idx) => (
                               <div key={idx} className="w-full h-full relative flex-shrink-0">
-                                    <img 
-                                        src={img} 
-                                        alt={`${selectedTrend.title} - ${idx + 1}`}
-                                        className="w-full h-full object-cover pointer-events-none"
-                                    />
-                                    {/* Overlay Gradient for readability */}
+                                    <img src={img} alt={`${selectedTrend.title} - ${idx + 1}`} className="w-full h-full object-cover pointer-events-none" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
                               </div>
                           ))}
                       </div>
-
-                      {/* Navigation Arrows (Desktop) */}
                       <div className={`absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 transition-opacity duration-300 ${scrollProgress > 0.1 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); prevSlide(); }}
-                            disabled={currentSlideIndex === 0}
-                            className="p-4 text-white hover:bg-white/10 rounded-full transition-all disabled:opacity-0 hidden md:block"
-                          >
-                              <ChevronLeft size={48} strokeWidth={1} />
-                          </button>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); nextSlide(); }}
-                            disabled={currentSlideIndex === selectedTrend.gallery.length - 1}
-                            className="p-4 text-white hover:bg-white/10 rounded-full transition-all disabled:opacity-0 hidden md:block"
-                          >
-                              <ChevronRight size={48} strokeWidth={1} />
-                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} disabled={currentSlideIndex === 0} className="p-4 text-white hover:bg-white/10 rounded-full transition-all disabled:opacity-0 hidden md:block"><ChevronLeft size={48} strokeWidth={1} /></button>
+                          <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} disabled={currentSlideIndex === selectedTrend.gallery.length - 1} className="p-4 text-white hover:bg-white/10 rounded-full transition-all disabled:opacity-0 hidden md:block"><ChevronRight size={48} strokeWidth={1} /></button>
                       </div>
-
-                      {/* Hero Info (Fades out on scroll) */}
                       <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 text-white pointer-events-none">
                           <div className="max-w-7xl mx-auto flex flex-col items-start gap-4" style={{ opacity: 1 - scrollProgress * 2 }}>
                               <div className="flex items-center gap-3 mb-2">
@@ -513,62 +434,29 @@ const TrendLab: React.FC = () => {
                               </div>
                               <h2 className="text-5xl md:text-8xl font-black tracking-tight leading-none">{selectedTrend.title}</h2>
                               <p className="text-xl md:text-2xl font-light opacity-90 leading-relaxed font-serif italic">{selectedTrend.subtitle}</p>
-                              
-                              <div className="flex gap-2 mt-4">
-                                  {selectedTrend.tags.map(tag => (
-                                      <span key={tag} className="text-[10px] font-bold border border-white/30 px-3 py-1 rounded-full">{tag}</span>
-                                  ))}
-                              </div>
-
-                              <div className="mt-8 animate-bounce">
-                                <span className="text-[10px] uppercase tracking-[0.2em] opacity-70">Scroll to Read</span>
-                              </div>
+                              <div className="flex gap-2 mt-4">{selectedTrend.tags.map(tag => (<span key={tag} className="text-[10px] font-bold border border-white/30 px-3 py-1 rounded-full">{tag}</span>))}</div>
+                              <div className="mt-8 animate-bounce"><span className="text-[10px] uppercase tracking-[0.2em] opacity-70">Scroll to Read</span></div>
                           </div>
                       </div>
                   </div>
               </div>
 
-              {/* Scrollable Blog Content (Pushes up from bottom) */}
               <div className="relative z-[20] bg-white min-h-screen -mt-20 rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.3)]">
                   <div className="max-w-4xl mx-auto px-6 py-24">
-                       {/* Meta Header */}
                        <div className="flex items-center justify-between border-b border-slate-100 pb-8 mb-12">
                            <div className="flex items-center gap-4">
-                               <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500">
-                                   {selectedTrend.author.substring(0, 2).toUpperCase()}
-                                </div>
-                               <div>
-                                   <div className="text-sm font-bold text-slate-900">{selectedTrend.author}</div>
-                                   <div className="text-xs text-slate-500">Published on {selectedTrend.date}</div>
-                               </div>
+                               <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500">{selectedTrend.author.substring(0, 2).toUpperCase()}</div>
+                               <div><div className="text-sm font-bold text-slate-900">{selectedTrend.author}</div><div className="text-xs text-slate-500">Published on {selectedTrend.date}</div></div>
                            </div>
-                           <div className="flex gap-2">
-                               <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors"><Share2 size={20} /></button>
-                               <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors"><Bookmark size={20} /></button>
-                           </div>
+                           <div className="flex gap-2"><button className="p-2 text-slate-400 hover:text-blue-600 transition-colors"><Share2 size={20} /></button><button className="p-2 text-slate-400 hover:text-blue-600 transition-colors"><Bookmark size={20} /></button></div>
                        </div>
-
-                       {/* Render HTML Content */}
-                       {selectedTrend.content ? (
-                           <div dangerouslySetInnerHTML={{ __html: selectedTrend.content }} />
-                       ) : (
-                           <div className="text-center py-20 text-slate-400">
-                               <p>No content available for this trend.</p>
-                           </div>
-                       )}
-
-                        {/* Footer / Next */}
+                       {selectedTrend.content ? (<div dangerouslySetInnerHTML={{ __html: selectedTrend.content }} />) : (<div className="text-center py-20 text-slate-400"><p>No content available for this trend.</p></div>)}
                         <div className="mt-20 pt-10 border-t border-slate-200">
                             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Related Trends</h4>
                             <div className="grid grid-cols-2 gap-6">
                                 {archiveData.filter(t => t.id !== selectedTrend.id).slice(0, 2).map(t => (
-                                    <div key={t.id} className="group cursor-pointer" onClick={() => {
-                                        closeViewer();
-                                        setTimeout(() => openViewer(t), 100);
-                                    }}>
-                                        <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden mb-3">
-                                            <img src={t.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                        </div>
+                                    <div key={t.id} className="group cursor-pointer" onClick={() => { closeViewer(); setTimeout(() => openViewer(t), 100); }}>
+                                        <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden mb-3"><img src={t.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /></div>
                                         <h5 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{t.title}</h5>
                                     </div>
                                 ))}
@@ -576,126 +464,33 @@ const TrendLab: React.FC = () => {
                         </div>
                   </div>
               </div>
-
           </div>
       )}
 
-      {/* --- AI ANALYZER DRAWER (Right Slide) --- */}
-      <div className={`fixed inset-y-0 right-0 z-[150] w-full md:w-[480px] bg-white shadow-2xl transform transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] flex flex-col border-l border-slate-200
-            ${isAnalyzerOpen ? 'translate-x-0' : 'translate-x-full'}`}
-      >
-            {/* Drawer Header */}
+      <div className={`fixed inset-y-0 right-0 z-[150] w-full md:w-[480px] bg-white shadow-2xl transform transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] flex flex-col border-l border-slate-200 ${isAnalyzerOpen ? 'translate-x-0' : 'translate-x-full'}`}>
             <div className="bg-slate-900 text-white p-8 flex items-start justify-between">
-                <div>
-                    <div className="flex items-center gap-2 mb-2 text-blue-400">
-                        <Sparkles size={18} />
-                        <span className="text-xs font-bold uppercase tracking-widest">AI Lab Mode</span>
-                    </div>
-                    <h2 className="text-2xl font-bold">Trend Analyzer</h2>
-                    <p className="text-slate-400 text-sm mt-2">
-                        Enter a keyword to generate architectural concepts and visual suggestions.
-                    </p>
-                </div>
-                <button 
-                    onClick={() => setIsAnalyzerOpen(false)}
-                    className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
-                >
-                    <X size={20} />
-                </button>
+                <div><div className="flex items-center gap-2 mb-2 text-blue-400"><Sparkles size={18} /><span className="text-xs font-bold uppercase tracking-widest">AI Lab Mode</span></div><h2 className="text-2xl font-bold">Trend Analyzer</h2><p className="text-slate-400 text-sm mt-2">Enter a keyword to generate architectural concepts and visual suggestions.</p></div>
+                <button onClick={() => setIsAnalyzerOpen(false)} className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button>
             </div>
-
-            {/* Drawer Content */}
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50">
                 <form onSubmit={handleSearch} className="mb-8">
                     <div className="relative">
-                        <input
-                            type="text"
-                            className="w-full pl-4 pr-12 py-4 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium"
-                            placeholder="e.g. Carbon Neutrality..."
-                            value={keyword}
-                            onChange={(e) => setKeyword(e.target.value)}
-                        />
-                        <button
-                            type="submit"
-                            disabled={isLoading || !keyword.trim()}
-                            className="absolute right-2 top-2 bottom-2 aspect-square bg-slate-900 text-white rounded-lg flex items-center justify-center hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                            {isLoading ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
-                        </button>
+                        <input type="text" className="w-full pl-4 pr-12 py-4 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium" placeholder="e.g. Carbon Neutrality..." value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+                        <button type="submit" disabled={isLoading || !keyword.trim()} className="absolute right-2 top-2 bottom-2 aspect-square bg-slate-900 text-white rounded-lg flex items-center justify-center hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all">{isLoading ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}</button>
                     </div>
                 </form>
-
-                {/* Analysis Result */}
                 {result ? (
                     <div className="animate-fade-in-up space-y-6">
-                        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                            <span className="text-xs font-bold text-blue-600 uppercase tracking-wide mb-2 block">Analysis Report</span>
-                            <h3 className="text-xl font-bold text-slate-900 mb-4 border-b border-slate-100 pb-4">
-                                "{result.keyword}"
-                            </h3>
-                            <p className="text-sm text-slate-600 leading-relaxed">
-                                {result.description}
-                            </p>
-                        </div>
-
-                        <div>
-                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Hash size={12} /> Suggested Concepts
-                            </h4>
-                            <div className="space-y-3">
-                                {result.suggestedConcepts.map((concept, idx) => (
-                                    <div 
-                                        key={idx} 
-                                        className="group bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between hover:border-blue-400 hover:shadow-md transition-all cursor-pointer"
-                                    >
-                                        <span className="font-bold text-slate-800 text-sm">{concept}</span>
-                                        <ArrowRight size={16} className="text-slate-300 group-hover:text-blue-600 transition-colors" />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 items-start">
-                            <div className="mt-0.5 min-w-[16px]"><Sparkles className="text-blue-600" size={16} /></div>
-                            <p className="text-xs text-blue-800 leading-relaxed">
-                                <strong>Tip:</strong> Use these concepts in the 'Asset Library' to find matching diagrams or mockups.
-                            </p>
-                        </div>
+                        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm"><span className="text-xs font-bold text-blue-600 uppercase tracking-wide mb-2 block">Analysis Report</span><h3 className="text-xl font-bold text-slate-900 mb-4 border-b border-slate-100 pb-4">"{result.keyword}"</h3><p className="text-sm text-slate-600 leading-relaxed">{result.description}</p></div>
+                        <div><h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Hash size={12} /> Suggested Concepts</h4><div className="space-y-3">{result.suggestedConcepts.map((concept, idx) => (<div key={idx} className="group bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between hover:border-blue-400 hover:shadow-md transition-all cursor-pointer"><span className="font-bold text-slate-800 text-sm">{concept}</span><ArrowRight size={16} className="text-slate-300 group-hover:text-blue-600 transition-colors" /></div>))}</div></div>
+                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 items-start"><div className="mt-0.5 min-w-[16px]"><Sparkles className="text-blue-600" size={16} /></div><p className="text-xs text-blue-800 leading-relaxed"><strong>Tip:</strong> Use these concepts in the 'Asset Library' to find matching diagrams or mockups.</p></div>
                     </div>
                 ) : (
-                    <div className="text-center py-12">
-                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 text-slate-300 mb-4">
-                            <Sparkles size={24} />
-                         </div>
-                         <h4 className="text-slate-900 font-bold mb-2">Ready to Analyze</h4>
-                         <p className="text-xs text-slate-500 max-w-[200px] mx-auto mb-8">
-                            Enter a keyword above to get AI-powered architectural insights.
-                         </p>
-                         
-                         <div className="text-left">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-3">Popular Keywords</span>
-                            <div className="flex flex-wrap gap-2">
-                                {['Smart City', 'Biophilic', 'Modular', 'Metaverse', 'Zero Energy'].map((tag) => (
-                                    <button
-                                        key={tag}
-                                        onClick={() => setKeyword(tag)}
-                                        className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:border-blue-300 hover:text-blue-600 transition-colors"
-                                    >
-                                        {tag}
-                                    </button>
-                                ))}
-                            </div>
-                         </div>
-                    </div>
+                    <div className="text-center py-12"><div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 text-slate-300 mb-4"><Sparkles size={24} /></div><h4 className="text-slate-900 font-bold mb-2">Ready to Analyze</h4><p className="text-xs text-slate-500 max-w-[200px] mx-auto mb-8">Enter a keyword above to get AI-powered architectural insights.</p><div className="text-left"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-3">Popular Keywords</span><div className="flex flex-wrap gap-2">{['Smart City', 'Biophilic', 'Modular', 'Metaverse', 'Zero Energy'].map((tag) => (<button key={tag} onClick={() => setKeyword(tag)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:border-blue-300 hover:text-blue-600 transition-colors">{tag}</button>))}</div></div></div>
                 )}
             </div>
       </div>
-      
-      {/* Overlay for Drawer */}
-      {isAnalyzerOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[140] animate-fade-in" onClick={() => setIsAnalyzerOpen(false)} />
-      )}
-
+      {isAnalyzerOpen && (<div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[140] animate-fade-in" onClick={() => setIsAnalyzerOpen(false)} />)}
     </div>
   );
 };

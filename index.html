@@ -50,6 +50,28 @@
 }
 </script>
 <link rel="stylesheet" href="/index.css">
+<script>
+  // Security: Disable Right Click
+  document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+  });
+
+  // Security: Disable Developer Tools Shortcuts (F12, Ctrl+Shift+I/J/C/U)
+  document.addEventListener('keydown', function(e) {
+    if(e.keyCode == 123) { // F12
+      e.preventDefault();
+      return false;
+    }
+    if(e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) { // I, J, C
+      e.preventDefault();
+      return false;
+    }
+    if(e.ctrlKey && e.keyCode == 85) { // U (View Source)
+      e.preventDefault();
+      return false;
+    }
+  });
+</script>
 </head>
   <body>
     <div id="root"></div>

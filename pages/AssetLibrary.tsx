@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ASSETS } from '../data/mockData';
@@ -558,6 +557,13 @@ const AssetLibrary: React.FC = () => {
             },
             action_type: 'recommend_checklist'
         });
+        
+        if (!result) {
+            alert("API connection failed. Please check your API_KEY environment variable in deployment settings.");
+            setAiInsightState(prev => ({ ...prev, loading: false, isOpen: false }));
+            return;
+        }
+
         setAiInsightState(prev => ({ ...prev, loading: false, result }));
     };
 
@@ -588,6 +594,13 @@ const AssetLibrary: React.FC = () => {
             archiSpeakDraft, 
             contextInfo 
         );
+        
+        if (!result) {
+            alert("API connection failed. Please check your API_KEY environment variable.");
+            setIsArchiSpeakLoading(false);
+            return;
+        }
+
         if (result) {
             updatePlacedAssetCaption(selectedPlacedAssetId, result.generated_caption);
             setArchiSpeakDraft('');
@@ -718,6 +731,14 @@ const AssetLibrary: React.FC = () => {
             return `${idx + 1}. ${label}`;
         });
         const result = await analyzeLayoutNarrative(descriptions, type);
+        
+        if (!result) {
+            alert("API connection failed. Please check your API_KEY environment variable.");
+            setIsAnalyzing(false);
+            setIsAnalysisModalOpen(false);
+            return;
+        }
+
         setAnalysisResult(result);
         setIsAnalyzing(false);
     };
@@ -788,6 +809,8 @@ const AssetLibrary: React.FC = () => {
                 return newMeta;
             });
             setHasUnsavedChanges(true);
+        } else {
+            alert("Failed to analyze. Check your API Key.");
         }
         setIsAnalyzingPhases(false);
     };
@@ -1748,9 +1771,8 @@ const AssetLibrary: React.FC = () => {
         );
     }
 
-    // --- RENDER: Builder Mode (RESTORED) ---
+    {/* --- RENDER: Builder Mode (RESTORED) --- */}
     if (viewState === 'BUILDER' || viewState === 'GRID_VIEW') {
-        const isGrid = viewState === 'GRID_VIEW';
         return (
             <div className="fixed inset-0 w-full h-full bg-[#f8fafc] overflow-hidden flex flex-col z-[100] font-sans">
                 {/* Header */}
@@ -1758,18 +1780,18 @@ const AssetLibrary: React.FC = () => {
                     <div className="flex items-center gap-4">
                         <button onClick={() => handleSafeExit('DIAGRAM')} className="p-2 hover:bg-slate-50 rounded-full text-slate-400 hover:text-slate-900 transition-colors"><ArrowLeft size={18} /></button>
                         <div className="h-6 w-[1px] bg-slate-200 mx-2"></div>
-                        {!isGrid && <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-lg transition-colors ${isSidebarOpen ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}>{isSidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}</button>}
+                        {viewState !== 'GRID_VIEW' && <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-lg transition-colors ${isSidebarOpen ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}>{isSidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}</button>}
                         <div className="flex items-center gap-4"><h2 className="text-xl font-sans font-bold tracking-tight text-slate-900">Layout Builder</h2>{hasUnsavedChanges && <span className="w-2 h-2 bg-amber-500 rounded-full" title="Unsaved Changes"></span>}</div>
                     </div>
                     <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6">
                         <div className="flex items-center bg-slate-100/50 rounded-full p-1 gap-1 border border-slate-200/50 shadow-inner">
-                            <button onClick={() => setViewState('BUILDER')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all text-[10px] font-bold uppercase tracking-wider ${!isGrid ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-900'}`}><Edit2 size={12} /> Edit</button>
+                            <button onClick={() => setViewState('BUILDER')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all text-[10px] font-bold uppercase tracking-wider ${viewState !== 'GRID_VIEW' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-900'}`}><Edit2 size={12} /> Edit</button>
                             <div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div>
-                            <button onClick={() => setViewState('GRID_VIEW')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all text-[10px] font-bold uppercase tracking-wider ${isGrid ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-900'}`}><LayoutGrid size={12} /> Grid</button>
+                            <button onClick={() => setViewState('GRID_VIEW')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all text-[10px] font-bold uppercase tracking-wider ${viewState === 'GRID_VIEW' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-900'}`}><LayoutGrid size={12} /> Grid</button>
                             <div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div>
                             <button onClick={handlePlayPresentation} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-900 hover:bg-white/50"><Play size={12} /> Play</button>
                         </div>
-                        {!isGrid && (
+                        {viewState !== 'GRID_VIEW' && (
                             <div className="flex items-center gap-3">
                                 <button onClick={() => setPageCount(Math.max(1, pageCount - 1))} className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-900 transition-colors"><Minus size={14} /></button>
                                 <div className="text-xs font-bold text-slate-900 font-mono tracking-widest"><span className="text-slate-900">{String(currentPageInView).padStart(2, '0')}</span><span className="text-slate-300 mx-1">/</span><span className="text-slate-400">{String(pageCount).padStart(2, '0')}</span></div>
@@ -1778,13 +1800,13 @@ const AssetLibrary: React.FC = () => {
                         )}
                     </div>
                     <div className="flex items-center gap-2 bg-slate-100/50 rounded-full p-1 border border-slate-200/50 shadow-inner">
-                        {!isGrid && (<><button onClick={handleFetchAiInsight} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-emerald-600 hover:bg-white hover:shadow-sm transition-all"><ListChecks size={12} /><span>Checklist AI</span></button><div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div><button onClick={() => setIsProjectSettingsOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:bg-white hover:text-slate-900 transition-all"><Settings size={12} /><span>Context</span></button><div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div></>)}
-                        {isGrid && (<><button onClick={handleAnalyzeLayout} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:bg-white hover:text-indigo-600 hover:shadow-sm transition-all"><Sparkles size={12} /> <span>AI Analysis</span></button><div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div><div className="relative group/balance"><button onClick={() => setShowAnalysisGraph(!showAnalysisGraph)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${showAnalysisGraph ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:bg-white hover:text-slate-900'}`}><BarChart3 size={12} /><span>Balance</span></button><div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover/balance:opacity-100 group-hover/balance:visible transition-all duration-200 z-[60]"><div className="bg-white rounded-xl shadow-xl border border-slate-200 p-2 min-w-[140px] flex flex-col gap-1"><button onClick={handleAiPhaseRefresh} disabled={isAnalyzingPhases} className="flex items-center gap-2 px-2 py-1.5 text-[10px] font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors w-full text-left">{isAnalyzingPhases ? <RefreshCw size={12} className="animate-spin" /> : <Sparkles size={12} />}<span>AI Re-classify</span></button></div></div></div><div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div></>)}
+                        {viewState !== 'GRID_VIEW' && (<><button onClick={handleFetchAiInsight} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-emerald-600 hover:bg-white hover:shadow-sm transition-all"><ListChecks size={12} /><span>Checklist AI</span></button><div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div><button onClick={() => setIsProjectSettingsOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:bg-white hover:text-slate-900 transition-all"><Settings size={12} /><span>Context</span></button><div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div></>)}
+                        {viewState === 'GRID_VIEW' && (<><button onClick={handleAnalyzeLayout} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:bg-white hover:text-indigo-600 hover:shadow-sm transition-all"><Sparkles size={12} /> <span>AI Analysis</span></button><div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div><div className="relative group/balance"><button onClick={() => setShowAnalysisGraph(!showAnalysisGraph)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${showAnalysisGraph ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:bg-white hover:text-slate-900'}`}><BarChart3 size={12} /><span>Balance</span></button><div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover/balance:opacity-100 group-hover/balance:visible transition-all duration-200 z-[60]"><div className="bg-white rounded-xl shadow-xl border border-slate-200 p-2 min-w-[140px] flex flex-col gap-1"><button onClick={handleAiPhaseRefresh} disabled={isAnalyzingPhases} className="flex items-center gap-2 px-2 py-1.5 text-[10px] font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors w-full text-left">{isAnalyzingPhases ? <RefreshCw size={12} className="animate-spin" /> : <Sparkles size={12} />}<span>AI Re-classify</span></button></div></div></div><div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div></>)}
                         <button onClick={handleSaveMockup} className="flex items-center gap-1.5 px-4 py-1.5 bg-slate-900 text-white rounded-full text-[10px] font-bold uppercase tracking-wider hover:bg-slate-800 shadow-md transition-all"><Cloud size={12} /> <span>{editingAssetId ? 'Update' : 'Save'}</span></button>
                     </div>
                 </div>
 
-                {isGrid ? (
+                {viewState === 'GRID_VIEW' ? (
                     <div ref={gridContainerRef} className={`flex-1 bg-[#2b2b2b] overflow-auto p-12 custom-scrollbar grid-bg relative ${isGridPanning ? 'cursor-grabbing' : 'cursor-default'}`} onWheel={handleGridWheel} onMouseDown={handleGridMouseDown} onMouseMove={handleGridMouseMove} onMouseUp={handleGridMouseUp} onMouseLeave={handleGridMouseUp}>
                         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40 bg-slate-900/50 backdrop-blur-md p-1 rounded-xl flex items-center gap-1 border border-white/10 shadow-2xl">
                             {layoutAlternatives.map((alt) => (<div key={alt.id} className="relative group">{editingAltId === alt.id ? (<form onSubmit={handleRenameAltSubmit} className="px-2"><input type="text" value={editAltName} onChange={(e) => setEditAltName(e.target.value)} onBlur={handleRenameAltSubmit} autoFocus className="w-24 px-2 py-1 text-xs bg-white text-slate-900 rounded outline-none" /></form>) : (<button onClick={(e) => { e.stopPropagation(); handleSwitchAlternative(alt.id); }} onContextMenu={(e) => { e.stopPropagation(); if (alt.id !== 'default') handleTabContextMenu(e, alt.id); }} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeAltId === alt.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>{alt.id.startsWith('ai-') && <Sparkles size={10} />}{alt.name}</button>)}</div>))}
@@ -1849,6 +1871,7 @@ const AssetLibrary: React.FC = () => {
                         </div>
                     </div>
                 )}
+                {/* ... Modals (Project Settings, AI Insight, Analysis Type, Analysis Result, Resize Confirm) - Unchanged but included in full file ... */}
                 {isProjectSettingsOpen && (<div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in p-6"><div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-scale-up border border-slate-200"><h3 className="text-lg font-bold text-slate-900 mb-2">Project Context</h3><div className="space-y-4"><div><label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 ml-1">Project Name</label><input type="text" value={projectInfo.project_name} onChange={e => setProjectInfo({...projectInfo, project_name: e.target.value})} className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900" /></div><div><label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 ml-1">Facility Type</label><input type="text" value={projectInfo.facility} onChange={e => setProjectInfo({...projectInfo, facility: e.target.value})} className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900" /></div><div><label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 ml-1">Project Type</label><select value={projectInfo.project_type} onChange={e => setProjectInfo({...projectInfo, project_type: e.target.value})} className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 appearance-none"><option value="공공현상설계">Public Competition (공공현상)</option><option value="사업제안서">Business Proposal (사업제안)</option><option value="턴키/실시설계">Turnkey / Detail Design</option></select></div></div><button onClick={() => setIsProjectSettingsOpen(false)} className="mt-6 w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-slate-800 transition-colors">Save Settings</button></div></div>)}
                 {aiInsightState.isOpen && (<div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-6"><div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden border border-slate-200 animate-scale-up"><div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50"><div className="flex items-center gap-3"><div className="bg-emerald-600 text-white p-1.5 rounded-lg"><ListChecks size={16} /></div><div><h3 className="text-sm font-bold text-slate-900 font-sans">Checklist Assistant</h3><p className="text-[10px] text-slate-500 font-medium">Context: {projectInfo.project_type}</p></div></div><button onClick={() => setAiInsightState(prev => ({...prev, isOpen: false}))} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={20} /></button></div><div className="flex-1 overflow-y-auto p-6 bg-slate-50/50"><div className="mb-6 p-4 bg-white border border-slate-200 rounded-xl shadow-sm"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-2">Page Context</span><p className="text-sm text-slate-700 italic">"{pagesMeta[aiInsightState.pageIndex]?.description || '(No description)'}"</p></div>{aiInsightState.loading ? (<div className="flex flex-col items-center justify-center h-32 text-slate-400 gap-3"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div><p className="text-xs font-medium animate-pulse">Analyzing...</p></div>) : !aiInsightState.result ? (<div className="text-center py-8"><button onClick={handleFetchAiInsight} className="px-6 py-2.5 rounded-full text-white text-sm font-bold shadow-lg bg-emerald-600 hover:bg-emerald-700">Generate Checklist</button></div>) : (<div className="space-y-4 animate-fade-in-up">{aiInsightState.result.result_type === 'checklist' && (<><div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl mb-4"><div className="flex items-start gap-2"><MessageSquareQuote size={16} className="text-emerald-600 mt-0.5" /><p className="text-xs text-emerald-800 font-medium leading-relaxed">{aiInsightState.result.advice}</p></div></div><div className="space-y-3">{aiInsightState.result.items.map((item, idx) => (<div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2"><div className="flex justify-between items-start"><h4 className="text-sm font-bold text-slate-900">{item.name}</h4><span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded">{item.search_keyword}</span></div><p className="text-xs text-slate-500">{item.reason}</p></div>))}</div></>)}</div>)}</div></div></div>)}
                 {isAnalysisTypeModalOpen && (<div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-6"><div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-scale-up border border-slate-200"><h3 className="text-lg font-bold text-slate-900 mb-1">Select Analysis Type</h3><div className="space-y-3 mt-4"><button onClick={() => confirmAnalysisType('public')} className="w-full p-4 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"><span className="font-bold text-slate-900 text-sm">🏛️ Public Competition</span></button><button onClick={() => confirmAnalysisType('business')} className="w-full p-4 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left group"><span className="font-bold text-slate-900 text-sm">💼 Business Proposal</span></button></div><button onClick={() => setIsAnalysisTypeModalOpen(false)} className="mt-6 w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">Cancel</button></div></div>)}
