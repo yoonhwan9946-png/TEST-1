@@ -25,7 +25,12 @@ const AdminDashboard: React.FC = () => {
     const savedBgs = localStorage.getItem('ylab_home_bgs');
 
     setIntroImage(savedIntro || DEFAULT_INTRO);
-    setBgImages(savedBgs ? JSON.parse(savedBgs) : DEFAULT_BGS);
+    try {
+        setBgImages(savedBgs ? JSON.parse(savedBgs) : DEFAULT_BGS);
+    } catch (e) {
+        console.error("Failed to parse background images setting", e);
+        setBgImages(DEFAULT_BGS);
+    }
   }, []);
 
   // Helper: File to Base64

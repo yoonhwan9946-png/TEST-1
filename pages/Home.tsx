@@ -35,20 +35,26 @@ const Home: React.FC = () => {
 
   // Intro Animation State - Initialize based on session storage
   const [introStep, setIntroStep] = useState(() => {
-      // If user has visited in this session, skip animation (start at step 3)
-      return sessionStorage.getItem('ylab_intro_shown') ? 3 : 0;
+      try {
+          // If user has visited in this session, skip animation (start at step 3)
+          return sessionStorage.getItem('ylab_intro_shown') ? 3 : 0;
+      } catch (e) {
+          return 0;
+      }
   });
 
   // Load Admin Settings
   useEffect(() => {
-    const savedIntro = localStorage.getItem('ylab_home_intro');
-    const savedBgs = localStorage.getItem('ylab_home_bgs');
+    try {
+        const savedIntro = localStorage.getItem('ylab_home_intro');
+        const savedBgs = localStorage.getItem('ylab_home_bgs');
 
-    if (savedIntro) setIntroMainImage(savedIntro);
-    if (savedBgs) {
-        try {
+        if (savedIntro) setIntroMainImage(savedIntro);
+        if (savedBgs) {
             setBackgroundImages(JSON.parse(savedBgs));
-        } catch(e) { console.error("Failed to parse bg images", e); }
+        }
+    } catch (e) {
+        console.warn("Failed to load home settings", e);
     }
   }, []);
 
@@ -57,8 +63,10 @@ const Home: React.FC = () => {
     // If already visited (introStep initialized to 3), skip logic
     if (introStep === 3) return;
 
-    // Mark as visited for this session
-    sessionStorage.setItem('ylab_intro_shown', 'true');
+    try {
+        // Mark as visited for this session
+        sessionStorage.setItem('ylab_intro_shown', 'true');
+    } catch(e) { console.warn("Session storage restricted"); }
 
     // Step 1: Start Drop Animation
     const t1 = setTimeout(() => setIntroStep(1), 100);
