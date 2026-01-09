@@ -18,7 +18,7 @@ import {
   BarChart3, PieChart, PlusSquare, Copy, Sparkles, MoreVertical,
   GripHorizontal, GripVertical, FileType, Landmark, Briefcase, Calculator,
   MessageSquareQuote, ListChecks, Type, AlignLeft, AlignCenter, AlignRight,
-  ArrowUp, ArrowDown
+  ArrowUp, ArrowDown, FilePenLine
 } from 'lucide-react';
 
 type ViewState = 'SPLIT' | 'DIAGRAM' | 'MOCKUP' | 'BUILDER' | 'VIEWER' | 'GRID_VIEW';
@@ -123,12 +123,10 @@ const GridPageThumbnail: React.FC<GridPageThumbnailProps> = ({
 
     const pageAssets = placedAssets.filter(p => p.pageIndex === pageIndex);
 
-    // Dynamic Border Logic: Selection > Analysis Color > User Manual Color > Default
     let borderClass = "border-slate-700 hover:border-slate-500";
     let ringClass = "";
-    let bgClass = "bg-slate-800"; // Solid background by default
+    let bgClass = "bg-slate-800"; 
 
-    // Dark mode colors for manual selection
     const manualColors: Record<string, string> = {
         blue: 'border-blue-500',
         rose: 'border-rose-500',
@@ -137,7 +135,6 @@ const GridPageThumbnail: React.FC<GridPageThumbnailProps> = ({
         slate: 'border-slate-700 hover:border-slate-500'
     };
 
-    // Dot colors for indicator
     const manualDotColors: Record<string, string> = {
         slate: 'bg-slate-600',
         blue: 'bg-blue-500',
@@ -217,15 +214,11 @@ const GridPageThumbnail: React.FC<GridPageThumbnailProps> = ({
 // LayoutAnalysisGraph Component
 const LayoutAnalysisGraph: React.FC<{ pagesMeta: PageMetadata[] }> = ({ pagesMeta }) => {
     
-    // Calculate Proportions
     const stats = useMemo(() => {
         const counts: Record<string, number> = {};
         let total = 0;
         pagesMeta.forEach(p => {
-            // FIX: Only count ACTIVE pages for valid balance analysis & total count.
-            // Exclude SKIP_COUNT (Cover/Index) from stats logic to avoid skewing "narrative balance".
             if(p.status === 'ACTIVE') {
-                // Priority: AI Phase > Regex Phase
                 const phase = p.aiPhase ? p.aiPhase : getPhaseFromDescription(p.description, p.status);
                 counts[phase] = (counts[phase] || 0) + 1;
                 total++;
@@ -239,35 +232,27 @@ const LayoutAnalysisGraph: React.FC<{ pagesMeta: PageMetadata[] }> = ({ pagesMet
     return (
         <div className="fixed bottom-0 left-0 right-0 h-24 bg-white/95 backdrop-blur-md border-t border-slate-200 z-[150] flex items-center px-12 animate-fade-in-up shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
             <div className="w-full max-w-[1800px] mx-auto flex items-center gap-16">
-                
-                {/* Title Section */}
                 <div className="flex-shrink-0 border-r border-slate-200 pr-12 hidden md:block">
                     <h4 className="text-xs font-sans font-bold uppercase tracking-[0.2em] text-slate-400 mb-1">Total Pages</h4>
                     <p className="text-4xl font-black text-slate-900 italic tracking-tighter leading-none">{stats.total}</p>
                 </div>
-
-                {/* Graph Section */}
                 <div className="flex-1 flex flex-col justify-center gap-2">
                     <div className="flex justify-between text-xs font-sans font-bold uppercase tracking-widest text-slate-400 mb-1">
                         <span>Narrative Balance</span>
                         <span>{stats.total > 0 ? '100%' : '0%'}</span>
                     </div>
-                    
-                    {/* Stacked Bar Graph */}
                     <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex relative">
                         {PHASE_ORDER.map((phaseKey) => {
                             const count = stats.counts[phaseKey] || 0;
                             if (count === 0) return null;
                             const percentage = (count / stats.total) * 100;
                             const config = PHASE_COLORS[phaseKey] || PHASE_COLORS.excluded;
-                            
                             return (
                                 <div 
                                     key={phaseKey}
                                     style={{ width: `${percentage}%` }} 
                                     className={`h-full ${config.bg} transition-all duration-700 ease-out relative group`}
                                 >
-                                    {/* Tooltip */}
                                     <div className="absolute opacity-0 group-hover:opacity-100 bottom-full mb-2 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[9px] px-2 py-1 rounded whitespace-nowrap pointer-events-none transition-opacity z-50">
                                         {config.label}: {count} ({Math.round(percentage)}%)
                                     </div>
@@ -275,8 +260,6 @@ const LayoutAnalysisGraph: React.FC<{ pagesMeta: PageMetadata[] }> = ({ pagesMet
                             );
                         })}
                     </div>
-                    
-                    {/* Legend */}
                     <div className="flex justify-between mt-2 font-sans text-[10px] font-bold uppercase tracking-wider text-slate-500 overflow-x-auto pb-1">
                         <div className="flex gap-6">
                             {PHASE_ORDER.map(key => {
@@ -308,7 +291,7 @@ const AssetLibrary: React.FC = () => {
 
     // --- Unsaved Changes & Edit State ---
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-    const [editingAssetId, setEditingAssetId] = useState<string | null>(null); // Track if we are editing an existing asset
+    const [editingAssetId, setEditingAssetId] = useState<string | null>(null); 
 
     // --- Edit Mode & Bulk Actions State ---
     const [isEditMode, setIsEditMode] = useState(false);
@@ -332,43 +315,26 @@ const AssetLibrary: React.FC = () => {
         file: null as File | null
     });
 
-    // --- Builder State ---
     const [pageCount, setPageCount] = useState<number>(1);
     const [currentPageInView, setCurrentPageInView] = useState<number>(1);
     const [placedAssets, setPlacedAssets] = useState<PlacedAsset[]>([]);
     const [selectedPlacedAssetId, setSelectedPlacedAssetId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    
-    // Page Metadata (Descriptions, Exclusion, Colors, Size)
     const [pagesMeta, setPagesMeta] = useState<PageMetadata[]>([]);
-    
-    // Alternatives State
     const [layoutAlternatives, setLayoutAlternatives] = useState<LayoutAlternative[]>([]);
     const [activeAltId, setActiveAltId] = useState<string>('default');
-    
-    // Alternatives Tab Management (Rename/Delete)
     const [tabContextMenu, setTabContextMenu] = useState<{ x: number, y: number, altId: string } | null>(null);
     const [editingAltId, setEditingAltId] = useState<string | null>(null);
     const [editAltName, setEditAltName] = useState('');
-
-    // Page Resize State
     const [pendingPageResize, setPendingPageResize] = useState<{ indices: number[], newSize: PaperSize } | null>(null);
-
-    // Context Menu State
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, pageIndex: number } | null>(null);
-
-    // AI Analysis State
-    const [isAnalysisTypeModalOpen, setIsAnalysisTypeModalOpen] = useState(false); // New: Select Type
+    const [isAnalysisTypeModalOpen, setIsAnalysisTypeModalOpen] = useState(false); 
     const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<LayoutAnalysisResult | null>(null);
-    
-    // Visual Graph State
     const [showAnalysisGraph, setShowAnalysisGraph] = useState(false);
-    const [isAnalyzingPhases, setIsAnalyzingPhases] = useState(false); // New state for phase refresh
-
-    // AI Insight Assistant State (Checklist)
+    const [isAnalyzingPhases, setIsAnalyzingPhases] = useState(false); 
     const [projectInfo, setProjectInfo] = useState<ProjectContextInfo>({
         facility: "복합문화시설",
         project_type: "공공현상설계",
@@ -384,40 +350,26 @@ const AssetLibrary: React.FC = () => {
     }>({
         isOpen: false,
         pageIndex: -1,
-        activeTab: 'checklist', // Default to checklist for Header Button
+        activeTab: 'checklist',
         loading: false,
         result: null
     });
-
-    // Asset Archi-Speak State
     const [isArchiSpeakOpen, setIsArchiSpeakOpen] = useState(false);
     const [archiSpeakDraft, setArchiSpeakDraft] = useState('');
     const [isArchiSpeakLoading, setIsArchiSpeakLoading] = useState(false);
-
-    // Viewer State
     const [viewerAsset, setViewerAsset] = useState<Asset | null>(null);
     const [viewerSlideIndex, setViewerSlideIndex] = useState(0);
     const [isViewerDragging, setIsViewerDragging] = useState(false);
     const [viewerDragStartX, setViewerDragStartX] = useState(0);
     const [viewerDragOffset, setViewerDragOffset] = useState(0);
-
-    // Grid View State & Selection
     const [gridZoom, setGridZoom] = useState(0.4);
     const gridContainerRef = useRef<HTMLDivElement>(null);
-    
-    // Grid Page Reordering State
     const [draggedPageIndex, setDraggedPageIndex] = useState<number | null>(null);
-    
-    // Grid Multi-Selection
     const [selectedPageIndices, setSelectedPageIndices] = useState<Set<number>>(new Set());
     const [isSelecting, setIsSelecting] = useState(false);
     const [selectionBox, setSelectionBox] = useState<{ startX: number, startY: number, endX: number, endY: number } | null>(null);
-
-    // Grid Panning (Middle Mouse)
     const [isGridPanning, setIsGridPanning] = useState(false);
     const gridPanStart = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
-
-    // Builder: Save Mockup State
     const [isSaveMockupModalOpen, setIsSaveMockupModalOpen] = useState(false);
     const [mockupSaveForm, setMockupSaveForm] = useState({
         title: '',
@@ -425,18 +377,10 @@ const AssetLibrary: React.FC = () => {
         tags: '',
         description: ''
     });
-
-    // Builder: Resize Toggle State
     const [isResizingEnabled, setIsResizingEnabled] = useState(false);
-
-    // Builder: Sidebar Search & Filter
     const [builderSearchTerm, setBuilderSearchTerm] = useState('');
     const [builderCategoryFilter, setBuilderCategoryFilter] = useState('All');
-
-    // Drag & Drop
     const [draggedSourceAsset, setDraggedSourceAsset] = useState<Asset | null>(null);
-    
-    // Interaction State
     const [interactionState, setInteractionState] = useState<{
         type: 'MOVE' | 'RESIZE' | null;
         uid: string | null;
@@ -458,25 +402,20 @@ const AssetLibrary: React.FC = () => {
         initialW: 0,
         initialH: 0
     });
-
     const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
     // --- Grid Constants ---
     const A3_WIDTH_PX = 1122;
     const A4_WIDTH_PX = 794; 
-    
     const GRID_COLS_A3 = 48;
     const GRID_ROWS_A3 = 36;
     const GRID_COLS_A4 = 36;
     const GRID_ROWS_A4 = 48;
-
     const CELL_SIZE_A3 = A3_WIDTH_PX / GRID_COLS_A3;
     const CELL_SIZE_A4 = A4_WIDTH_PX / GRID_COLS_A4;
-    
     const BG_DIAGRAM = "https://i.pinimg.com/originals/a6/50/2d/a6502d6df38a72a514d232c668b5561a.jpg"; 
     const BG_MOCKUP = "https://mir-s3-cdn-cf.behance.net/project_modules/fs/77c980112423985.6014022e0394b.jpg"; 
 
-    // Theme Colors
     const themeColors: Record<PageColorTheme, string> = {
         slate: 'border-slate-200/80 bg-white',
         blue: 'border-blue-400 bg-blue-50/10',
@@ -484,7 +423,6 @@ const AssetLibrary: React.FC = () => {
         amber: 'border-amber-400 bg-amber-50/10',
         emerald: 'border-emerald-400 bg-emerald-50/10'
     };
-    
     const themeDotColors: Record<PageColorTheme, string> = {
         slate: 'bg-slate-200',
         blue: 'bg-blue-500',
@@ -512,13 +450,11 @@ const AssetLibrary: React.FC = () => {
             }
             return newMeta;
         });
-
-        // Initialize default alternative if empty
         if (layoutAlternatives.length === 0) {
             setLayoutAlternatives([{
                 id: 'default',
                 name: 'Original',
-                pagesMeta: [], // Will be updated on first sync
+                pagesMeta: [], 
                 placedAssets: [],
                 pageCount: 1,
                 createdAt: Date.now()
@@ -526,14 +462,11 @@ const AssetLibrary: React.FC = () => {
         }
     }, [pageCount]);
 
-    // Calculate Page Numbers dynamically
     const getFormattedPageNumber = useCallback((index: number) => {
         const meta = pagesMeta[index];
         if (!meta) return String(index + 1).padStart(2, '0');
-        
         if (meta.status === 'SKIP_COUNT') return 'ZERO'; 
         if (meta.status === 'HIDDEN') return 'HIDDEN';
-        
         let count = 0;
         for (let i = 0; i <= index; i++) {
             if (pagesMeta[i]?.status === 'ACTIVE') {
@@ -543,7 +476,6 @@ const AssetLibrary: React.FC = () => {
         return String(count).padStart(2, '0');
     }, [pagesMeta]);
 
-    // Track unsaved changes & Sync current work to Active Alternative
     useEffect(() => {
         if (viewState === 'BUILDER' || viewState === 'GRID_VIEW') {
             setLayoutAlternatives(prev => prev.map(alt => {
@@ -560,49 +492,41 @@ const AssetLibrary: React.FC = () => {
         }
     }, [placedAssets, pagesMeta, pageCount, activeAltId]);
 
-    // Close context menu on global click
+    // ... (Handlers) ...
     useEffect(() => {
         const handleClick = () => {
             setContextMenu(null);
             setTabContextMenu(null);
-            setIsArchiSpeakOpen(false); // Close ArchiSpeak popover on outside click
+            setIsArchiSpeakOpen(false); 
         };
         window.addEventListener('click', handleClick);
         return () => window.removeEventListener('click', handleClick);
     }, []);
 
-    // --- Scroll Synchronization Handler (New) ---
     const handleCanvasScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const container = e.currentTarget;
         const pageElements = container.querySelectorAll('.page-container');
-        
         let closestPage = 0;
         let minDistance = Number.MAX_VALUE;
-        const offsetTop = 80; // approximate header height
-
+        const offsetTop = 80;
         pageElements.forEach((el) => {
             const rect = el.getBoundingClientRect();
-            // Calculate distance of element top from container top (plus offset)
             const distance = Math.abs(rect.top - container.getBoundingClientRect().top - offsetTop);
-            
             if (distance < minDistance) {
                 minDistance = distance;
                 closestPage = Number(el.getAttribute('data-page-index'));
             }
         });
-
-        // Update state if changed
         if (closestPage + 1 !== currentPageInView) {
             setCurrentPageInView(closestPage + 1);
         }
     };
 
-    // --- AI Insight Handlers ---
     const handleOpenAiInsight = (pageIndex: number) => {
         setAiInsightState({
             isOpen: true,
             pageIndex,
-            activeTab: 'checklist', // Default to checklist for page-level
+            activeTab: 'checklist',
             loading: false,
             result: null
         });
@@ -610,25 +534,15 @@ const AssetLibrary: React.FC = () => {
 
     const handleFetchAiInsight = async () => {
         let targetIndex = -1;
+        if (viewState === 'BUILDER') targetIndex = currentPageInView - 1;
+        else if (aiInsightState.pageIndex !== -1) targetIndex = aiInsightState.pageIndex;
+        else if (viewState === 'GRID_VIEW' && selectedPageIndices.size > 0) targetIndex = Array.from(selectedPageIndices)[0];
+        else targetIndex = 0; 
 
-        if (viewState === 'BUILDER') {
-            // Adjust for 0-based index
-            targetIndex = currentPageInView - 1;
-        } else if (aiInsightState.pageIndex !== -1) {
-            targetIndex = aiInsightState.pageIndex;
-        } else if (viewState === 'GRID_VIEW' && selectedPageIndices.size > 0) {
-            targetIndex = Array.from(selectedPageIndices)[0];
-        } else {
-            // Default fallback
-            targetIndex = 0; 
-        }
-
-        // Ensure targetIndex is valid
         if (targetIndex < 0 || targetIndex >= pagesMeta.length) {
             alert("Please select a page to generate checklist.");
             return;
         }
-
         setAiInsightState(prev => ({ 
             ...prev, 
             isOpen: true, 
@@ -636,7 +550,6 @@ const AssetLibrary: React.FC = () => {
             loading: true, 
             activeTab: 'checklist' 
         }));
-        
         const result = await generateArchitecturalInsights({
             project_info: projectInfo,
             page_context: {
@@ -648,21 +561,16 @@ const AssetLibrary: React.FC = () => {
         setAiInsightState(prev => ({ ...prev, loading: false, result }));
     };
 
-    // --- Asset-Specific Archi-Speak Handlers ---
     const handleGenerateArchiSpeak = async () => {
         if (!selectedPlacedAssetId) return; 
         setIsArchiSpeakLoading(true);
-
         const targetAsset = placedAssets.find(p => p.uid === selectedPlacedAssetId);
         if (!targetAsset) {
             setIsArchiSpeakLoading(false);
             return;
         }
-
-        // Gather context info for auto-generation
         const pageIdx = targetAsset.pageIndex;
         const pageDesc = pagesMeta[pageIdx]?.description || '';
-        
         const contextInfo = {
             assetMetadata: {
                 category: targetAsset.asset.category,
@@ -672,16 +580,14 @@ const AssetLibrary: React.FC = () => {
             },
             pageDescription: pageDesc
         };
-
         const result = await generateStyledCaption(
             {
                 title: targetAsset.asset.title,
                 description: targetAsset.asset.contentDescription || targetAsset.asset.title
             },
-            archiSpeakDraft, // Pass draft (empty or filled)
-            contextInfo // Pass context for auto-gen
+            archiSpeakDraft, 
+            contextInfo 
         );
-
         if (result) {
             updatePlacedAssetCaption(selectedPlacedAssetId, result.generated_caption);
             setArchiSpeakDraft('');
@@ -704,7 +610,6 @@ const AssetLibrary: React.FC = () => {
         setHasUnsavedChanges(true);
     };
 
-    // --- Tab Management Logic (FIXED DELETE - Left Navigation) ---
     const handleTabContextMenu = (e: React.MouseEvent, altId: string) => {
         e.preventDefault();
         e.stopPropagation();
@@ -731,71 +636,47 @@ const AssetLibrary: React.FC = () => {
     };
 
     const handleDeleteAlt = (altId: string) => {
-        // Close menu immediately to prevent UI lag
         setTabContextMenu(null);
-
         if (layoutAlternatives.length <= 1) {
             alert("At least one layout must remain.");
             return;
         }
-        
         if (window.confirm("Are you sure you want to delete this layout alternative?")) {
-            // 1. Find index before filtering to determine "left" target
             const deleteIndex = layoutAlternatives.findIndex(a => a.id === altId);
             const remainingAlts = layoutAlternatives.filter(a => a.id !== altId);
-            
-            // 2. Check if we are deleting the currently active alternative
             if (activeAltId === altId) {
-                // Calculate target index:
-                // If we are deleting item at index N (where N > 0), go to N-1 (Left).
-                // If we are deleting item at index 0, go to 0 (which is the old index 1).
                 const targetIndex = deleteIndex > 0 ? deleteIndex - 1 : 0;
                 const nextAlt = remainingAlts[targetIndex];
-                
                 if (nextAlt) {
-                    // IMPORTANT: Update both list and editor state simultaneously
                     setLayoutAlternatives(remainingAlts);
                     setActiveAltId(nextAlt.id);
-                    
-                    // Force load the next alternative's data into the editor
                     setPagesMeta(JSON.parse(JSON.stringify(nextAlt.pagesMeta)));
                     setPlacedAssets(JSON.parse(JSON.stringify(nextAlt.placedAssets)));
                     setPageCount(nextAlt.pageCount);
                 }
             } else {
-                // If deleting an inactive one, just update the list.
                 setLayoutAlternatives(remainingAlts);
             }
         }
     };
 
-    // --- Page Reordering Logic (Drag & Drop) ---
     const handlePageDragStart = (e: React.DragEvent, index: number) => {
         setDraggedPageIndex(index);
         e.dataTransfer.effectAllowed = 'move';
-        // Add a ghost image or effect if desired
     };
 
     const handlePageDragOver = (e: React.DragEvent, index: number) => {
-        e.preventDefault(); // Necessary for drop to work
+        e.preventDefault(); 
         if (draggedPageIndex === null || draggedPageIndex === index) return;
-        // Optional: Implement live visual reordering feedback here (complex)
     };
 
     const handlePageDrop = (e: React.DragEvent, targetIndex: number) => {
         e.preventDefault();
         if (draggedPageIndex === null || draggedPageIndex === targetIndex) return;
-
-        // 1. Reorder pagesMeta
         const newPagesMeta = [...pagesMeta];
         const [movedPage] = newPagesMeta.splice(draggedPageIndex, 1);
         newPagesMeta.splice(targetIndex, 0, movedPage);
-
-        // 2. Re-index pagesMeta (update internal pageIndex property if needed, though mostly used for keys)
-        // Actually, we need to map old indices to new indices to update placedAssets
         const indexMap = new Map<number, number>();
-        
-        // Calculate new indices for mapping
         for (let i = 0; i < pagesMeta.length; i++) {
             if (i === draggedPageIndex) {
                 indexMap.set(i, targetIndex);
@@ -813,41 +694,29 @@ const AssetLibrary: React.FC = () => {
                 }
             }
         }
-
-        // 3. Update placedAssets with new page indices
         const newPlacedAssets = placedAssets.map(asset => ({
             ...asset,
             pageIndex: indexMap.has(asset.pageIndex) ? indexMap.get(asset.pageIndex)! : asset.pageIndex
         }));
-
-        // 4. Update State (Syncs with Builder)
-        setPagesMeta(newPagesMeta.map((p, idx) => ({ ...p, pageIndex: idx }))); // Normalize pageIndex property
+        setPagesMeta(newPagesMeta.map((p, idx) => ({ ...p, pageIndex: idx }))); 
         setPlacedAssets(newPlacedAssets);
         setDraggedPageIndex(null);
         setHasUnsavedChanges(true);
     };
 
-    // --- AI Layout Analysis Handler ---
-    
-    // Step 1: Open Type Selection Modal
     const handleAnalyzeLayout = () => {
         setIsAnalysisTypeModalOpen(true);
     };
 
-    // Step 2: Confirm Type and Call API
     const confirmAnalysisType = async (type: 'public' | 'business') => {
         setIsAnalysisTypeModalOpen(false);
         setIsAnalysisModalOpen(true);
         setIsAnalyzing(true);
         setAnalysisResult(null);
-
-        // Extract descriptions
         const descriptions = pagesMeta.map((p, idx) => {
             const label = p.description.trim() ? p.description : 'Untitled Page';
             return `${idx + 1}. ${label}`;
         });
-
-        // Pass the selected type to the service
         const result = await analyzeLayoutNarrative(descriptions, type);
         setAnalysisResult(result);
         setIsAnalyzing(false);
@@ -855,14 +724,11 @@ const AssetLibrary: React.FC = () => {
 
     const handleApplyAnalysis = () => {
         if (!analysisResult) return;
-
         const newDescriptions = analysisResult.better_sequence.map(item => {
             return item.replace(/^\d+\.\s*/, '');
         });
-
         const newAltId = `ai-${Date.now()}`;
         const newPageCount = Math.max(pageCount, newDescriptions.length);
-        
         let newPagesMeta = [...pagesMeta];
         if (newDescriptions.length > newPagesMeta.length) {
             for (let i = newPagesMeta.length; i < newDescriptions.length; i++) {
@@ -875,14 +741,12 @@ const AssetLibrary: React.FC = () => {
                 });
             }
         }
-
         newPagesMeta = newPagesMeta.map((meta, idx) => {
             if (idx < newDescriptions.length) {
                 return { ...meta, description: newDescriptions[idx] };
             }
             return meta;
         });
-
         const newAlternative: LayoutAlternative = {
             id: newAltId,
             name: `AI Proposal`,
@@ -891,38 +755,28 @@ const AssetLibrary: React.FC = () => {
             pageCount: newPageCount,
             createdAt: Date.now()
         };
-
         setLayoutAlternatives(prev => [...prev, newAlternative]);
-        
         setActiveAltId(newAltId);
         setPagesMeta(newPagesMeta);
         setPageCount(newPageCount);
-
         setHasUnsavedChanges(true);
         setIsAnalysisModalOpen(false);
         alert("AI Suggestions created as a new alternative tab.");
     };
 
-    // --- New Handler: AI Phase Refresh ---
     const handleAiPhaseRefresh = async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (isAnalyzingPhases) return;
-        
         setIsAnalyzingPhases(true);
-        
-        // Prepare list of active pages with descriptions
         const activePages = pagesMeta
             .map((p, idx) => ({ pageIndex: idx, text: p.description }))
             .filter(p => p.text.trim().length > 0 && pagesMeta[p.pageIndex].status === 'ACTIVE');
-
         if (activePages.length === 0) {
             alert("Please add descriptions to active pages first.");
             setIsAnalyzingPhases(false);
             return;
         }
-
         const classifications = await classifyPagePhases(activePages);
-        
         if (classifications && classifications.length > 0) {
             setPagesMeta(prev => {
                 const newMeta = [...prev];
@@ -935,11 +789,9 @@ const AssetLibrary: React.FC = () => {
             });
             setHasUnsavedChanges(true);
         }
-        
         setIsAnalyzingPhases(false);
     };
 
-    // --- Alternative Management Handlers ---
     const handleAddAlternative = () => {
         const newAltId = `alt-${Date.now()}`;
         const currentAltName = layoutAlternatives.find(a => a.id === activeAltId)?.name || 'Original';
@@ -965,53 +817,41 @@ const AssetLibrary: React.FC = () => {
         }
     };
 
-    // --- Global Move/Resize Effect ---
     useEffect(() => {
         if (!interactionState.type) return;
-
         const handleGlobalMouseMove = (e: MouseEvent) => {
             if (!interactionState.uid) return;
-            
             const dx = e.clientX - interactionState.startX;
             const dy = e.clientY - interactionState.startY;
             const scaleFactor = 0.8; 
-            
             const currentAsset = placedAssets.find(a => a.uid === interactionState.uid);
             if (!currentAsset) return; 
-            
             const pageIndex = currentAsset.pageIndex;
             const paperSize = pagesMeta[pageIndex]?.size || 'A3_LANDSCAPE';
             const isA3 = paperSize === 'A3_LANDSCAPE';
             const cellSize = isA3 ? CELL_SIZE_A3 : CELL_SIZE_A4;
-
             if (interactionState.type === 'MOVE') {
                 const deltaXGrid = (dx / scaleFactor) / cellSize;
                 const deltaYGrid = (dy / scaleFactor) / cellSize;
-
                 const newX = Math.round(interactionState.initialX / cellSize + deltaXGrid);
                 const newY = Math.round(interactionState.initialY / cellSize + deltaYGrid);
-
                 setPlacedAssets(prev => prev.map(item => 
                     item.uid === interactionState.uid ? { ...item, x: newX, y: newY } : item
                 ));
             } else if (interactionState.type === 'RESIZE') {
                 const deltaWGrid = (dx / scaleFactor) / cellSize;
                 const deltaHGrid = (dy / scaleFactor) / cellSize;
-                
                 const newW = Math.max(1, Math.round(interactionState.initialW / cellSize + deltaWGrid));
                 const newH = Math.max(1, Math.round(interactionState.initialH / cellSize + deltaHGrid));
-
                 setPlacedAssets(prev => prev.map(item => 
                     item.uid === interactionState.uid ? { ...item, w: newW, h: newH } : item
                 ));
             }
         };
-
         const handleGlobalMouseUp = () => {
             setInteractionState(prev => ({ ...prev, type: null, uid: null }));
             setHasUnsavedChanges(true);
         };
-
         window.addEventListener('mousemove', handleGlobalMouseMove);
         window.addEventListener('mouseup', handleGlobalMouseUp);
         return () => {
@@ -1020,14 +860,11 @@ const AssetLibrary: React.FC = () => {
         };
     }, [interactionState, placedAssets, pagesMeta]);
 
-    // --- Keyboard Navigation for Viewer ---
     useEffect(() => {
         if (viewState !== 'VIEWER') return;
-
         const handleKeyDown = (e: KeyboardEvent) => {
             const visibleIndices = getVisiblePageIndices();
             const maxSlide = visibleIndices.length - 1;
-
             if (e.key === 'ArrowRight') {
                 if (viewerSlideIndex < maxSlide) setViewerSlideIndex(prev => prev + 1);
             } else if (e.key === 'ArrowLeft') {
@@ -1036,20 +873,16 @@ const AssetLibrary: React.FC = () => {
                 setViewState(lastViewState);
             }
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [viewState, viewerSlideIndex, lastViewState]);
 
-    // --- Safe Exit Handler ---
     const handleSafeExit = (targetViewState?: ViewState, targetPath?: string) => {
         if (hasUnsavedChanges) {
             const confirmExit = window.confirm("저장하지 않은 변경사항이 있습니다. 정말 나가시겠습니까?");
             if (!confirmExit) return;
         }
-        
         setHasUnsavedChanges(false);
-
         if (targetPath) {
             navigate(targetPath);
         } else if (targetViewState) {
@@ -1125,17 +958,14 @@ const AssetLibrary: React.FC = () => {
         }
     };
 
-    // --- Save Logic (Create vs Update) ---
     const handleSaveMockup = () => {
         if (editingAssetId) {
-            // Update Existing Project
             setAssets(prev => prev.map(a => {
                 if (a.id === editingAssetId) {
                     return {
                         ...a,
-                        pageNumber: pageCount, // Update page count
-                        layoutData: placedAssets, // Update layout
-                        // Optionally update thumbnail from first page here
+                        pageNumber: pageCount, 
+                        layoutData: placedAssets, 
                     };
                 }
                 return a;
@@ -1143,7 +973,6 @@ const AssetLibrary: React.FC = () => {
             setHasUnsavedChanges(false);
             alert("Project updated successfully!");
         } else {
-            // New Project -> Open Modal
             setIsSaveMockupModalOpen(true);
         }
     };
@@ -1171,7 +1000,7 @@ const AssetLibrary: React.FC = () => {
         };
         setAssets(prev => [newMockup, ...prev]);
         setIsSaveMockupModalOpen(false);
-        setEditingAssetId(newMockupId); // Now we are editing this new asset
+        setEditingAssetId(newMockupId);
         setMockupSaveForm({ title: '', category: 'Public Competition', tags: '', description: '' });
         setHasUnsavedChanges(false);
         alert("Layout saved to Mockups library!");
@@ -1181,7 +1010,7 @@ const AssetLibrary: React.FC = () => {
     const handleLoadLayout = (asset: Asset) => {
         if (asset.layoutData) {
             setPlacedAssets(asset.layoutData);
-            setEditingAssetId(asset.id); // Set the ID for Update logic
+            setEditingAssetId(asset.id);
             const maxPage = Math.max(...asset.layoutData.map(p => p.pageIndex), 0);
             setPageCount(maxPage + 1);
             setHasUnsavedChanges(false);
@@ -1202,8 +1031,6 @@ const AssetLibrary: React.FC = () => {
              return indices;
         }
         if (!viewerAsset.layoutData) return [];
-        // When coming from Gallery, we might not have pagesMeta loaded. 
-        // We assume all pages in layoutData range are visible by default in this case.
         const maxPage = Math.max(...viewerAsset.layoutData.map(p => p.pageIndex));
         return Array.from({length: maxPage + 1}, (_, i) => i);
     }, [viewerAsset, pageCount, pagesMeta, viewState]);
@@ -1231,24 +1058,19 @@ const AssetLibrary: React.FC = () => {
     const handleDropOnPaper = (e: React.DragEvent, pageIndex: number) => {
         e.preventDefault();
         if (!draggedSourceAsset) return;
-
         const paperSize = pagesMeta[pageIndex]?.size || 'A3_LANDSCAPE';
         const isA3 = paperSize === 'A3_LANDSCAPE';
         const cellSize = isA3 ? CELL_SIZE_A3 : CELL_SIZE_A4;
         const gridCols = isA3 ? GRID_COLS_A3 : GRID_COLS_A4;
         const gridRows = isA3 ? GRID_ROWS_A3 : GRID_ROWS_A4;
-
         const paperRect = e.currentTarget.getBoundingClientRect();
         const scaleFactor = viewState === 'GRID_VIEW' ? gridZoom : 0.8;
         const dropX = (e.clientX - paperRect.left) / scaleFactor;
         const dropY = (e.clientY - paperRect.top) / scaleFactor;
-
         const gridX = Math.floor(dropX / cellSize);
         const gridY = Math.floor(dropY / cellSize);
-
         const defaultW = 12;
         const defaultH = 10;
-
         const newPlacement: PlacedAsset = {
             uid: `placed-${Date.now()}`,
             asset: draggedSourceAsset,
@@ -1264,7 +1086,6 @@ const AssetLibrary: React.FC = () => {
         setHasUnsavedChanges(true);
     };
 
-    // --- Grid View Selection Logic ---
     const handlePageContextMenu = (pageIndex: number, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -1309,7 +1130,6 @@ const AssetLibrary: React.FC = () => {
         }
         if (e.button === 0) {
             const target = e.target as HTMLElement;
-            // Ensure we are clicking background not a page
             if (target === gridContainerRef.current || target.classList.contains('grid-bg')) {
                 if (!e.shiftKey) setSelectedPageIndices(new Set()); 
                 setIsSelecting(true);
@@ -1345,7 +1165,6 @@ const AssetLibrary: React.FC = () => {
             const sbTop = Math.min(selectionBox.startY, selectionBox.endY);
             const sbRight = Math.max(selectionBox.startX, selectionBox.endX);
             const sbBottom = Math.max(selectionBox.startY, selectionBox.endY);
-
             const pageElements = document.querySelectorAll('.grid-page-item');
             pageElements.forEach((el) => {
                 const rect = (el as HTMLElement).getBoundingClientRect();
@@ -1354,7 +1173,6 @@ const AssetLibrary: React.FC = () => {
                 const pTop = rect.top - containerRect.top + gridContainerRef.current!.scrollTop;
                 const pRight = pLeft + rect.width;
                 const pBottom = pTop + rect.height;
-
                 if (pLeft < sbRight && pRight > sbLeft && pTop < sbBottom && pBottom > sbTop) {
                     const idx = Number(el.getAttribute('data-page-index'));
                     newSelection.add(idx);
@@ -1385,9 +1203,7 @@ const AssetLibrary: React.FC = () => {
     };
     const groupedAssets = (viewState === 'DIAGRAM' || viewState === 'MOCKUP') ? getGroupedAssets() : [];
 
-    // Interaction Handlers
     const handleGridWheel = (e: React.WheelEvent) => {
-        // Direct Zoom without modifiers (User Preference)
         const delta = e.deltaY > 0 ? 0.9 : 1.1;
         setGridZoom(prev => Math.min(Math.max(prev * delta, 0.1), 1.5));
     };
@@ -1405,10 +1221,8 @@ const AssetLibrary: React.FC = () => {
         e.stopPropagation();
         e.preventDefault();
         if (isResizingEnabled) return;
-
         setSelectedPlacedAssetId(asset.uid);
         const cellSize = (pagesMeta[asset.pageIndex]?.size === 'A3_LANDSCAPE') ? CELL_SIZE_A3 : CELL_SIZE_A4;
-
         setInteractionState({
             type: 'MOVE',
             uid: asset.uid,
@@ -1425,7 +1239,6 @@ const AssetLibrary: React.FC = () => {
     const handleResizeMouseDown = (e: React.MouseEvent, asset: PlacedAsset, direction: ResizeDirection) => {
         e.stopPropagation();
         const cellSize = (pagesMeta[asset.pageIndex]?.size === 'A3_LANDSCAPE') ? CELL_SIZE_A3 : CELL_SIZE_A4;
-
         setInteractionState({
             type: 'RESIZE',
             uid: asset.uid,
@@ -1443,6 +1256,20 @@ const AssetLibrary: React.FC = () => {
         setPlacedAssets(prev => prev.filter(p => p.uid !== uid));
         setHasUnsavedChanges(true);
         setSelectedPlacedAssetId(null);
+    };
+
+    // --- Detail Edit Handlers ---
+    const handleDetailChange = (field: keyof Asset, value: any) => {
+        if (!editingAssetData) return;
+        setEditingAssetData({ ...editingAssetData, [field]: value });
+    };
+
+    const handleSaveDetail = () => {
+        if (editingAssetData) {
+            setAssets(prev => prev.map(a => a.id === editingAssetData.id ? editingAssetData : a));
+            setSelectedAsset(editingAssetData);
+            setIsDetailEditing(false);
+        }
     };
 
     // --- RENDER: Landing (Split Screen) ---
@@ -1499,11 +1326,10 @@ const AssetLibrary: React.FC = () => {
 
     // --- RENDER: Viewer Mode (Presentation) ---
     if (viewState === 'VIEWER' && viewerAsset) {
+        // ... (Same as before)
         const visibleIndices = getVisiblePageIndices();
         const currentRealIndex = visibleIndices[viewerSlideIndex];
-        
-        // Handle case where pagesMeta might not be initialized (if entering from Gallery directly)
-        const currentPaperSize = (pagesMeta[currentRealIndex]?.size) || 'A3_LANDSCAPE'; // Default fallback
+        const currentPaperSize = (pagesMeta[currentRealIndex]?.size) || 'A3_LANDSCAPE'; 
 
         return (
             <div className="fixed inset-0 w-full h-full bg-black z-[200] flex flex-col font-sans select-none focus:outline-none" tabIndex={0}>
@@ -1543,11 +1369,9 @@ const AssetLibrary: React.FC = () => {
                                 transform: `scale(0.85)`, 
                             }}
                         >
-                            {/* Render Assets for this page */}
                             {placedAssets
                                 .filter(item => item.pageIndex === currentRealIndex)
                                 .map(item => {
-                                    // Calculate cell size based on current page size (even if fallback)
                                     const isA3 = currentPaperSize === 'A3_LANDSCAPE';
                                     const cellSize = isA3 ? CELL_SIZE_A3 : CELL_SIZE_A4;
                                     return (
@@ -1650,9 +1474,11 @@ const AssetLibrary: React.FC = () => {
                                             onClick={() => {
                                                 setSelectedAsset(asset);
                                                 setEditingAssetData(asset);
+                                                setIsDetailEditing(false); // Reset edit mode when opening
                                             }}
                                             className="group relative flex flex-col gap-3 cursor-pointer"
                                         >
+                                            {/* ... Card Content (Updated to Detailed View) ... */}
                                             <div className="relative aspect-[4/3] overflow-hidden bg-slate-100 rounded-sm">
                                                 <img 
                                                     src={asset.imageUrl} 
@@ -1672,7 +1498,6 @@ const AssetLibrary: React.FC = () => {
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); 
                                                                 setViewerAsset(asset); 
-                                                                // Important: Set placedAssets for viewer immediately when coming from gallery
                                                                 setPlacedAssets(asset.layoutData || []); 
                                                                 setViewerSlideIndex(0); 
                                                                 setLastViewState('MOCKUP'); 
@@ -1685,10 +1510,34 @@ const AssetLibrary: React.FC = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="flex flex-col gap-1 px-1">
-                                                <h4 className="text-lg font-bold text-slate-900 line-clamp-1 group-hover:text-blue-600 transition-colors font-serif leading-tight">{asset.title}</h4>
-                                                <div className="flex items-center justify-between pt-2 border-t border-slate-100 mt-1">
-                                                    <span className="text-[10px] font-mono text-slate-500 uppercase">{asset.source || "Unknown"}</span>
+                                            <div className="flex flex-col gap-2 px-1 mt-2">
+                                                <h4 className="text-lg font-bold text-slate-900 line-clamp-1 group-hover:text-blue-600 transition-colors font-serif leading-tight">
+                                                    {asset.title}
+                                                </h4>
+                                                <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                                    {asset.projectType && (
+                                                        <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{asset.projectType}</span>
+                                                    )}
+                                                    {asset.facilityType && (
+                                                        <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{asset.facilityType}</span>
+                                                    )}
+                                                </div>
+                                                {asset.contentDescription && (
+                                                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                                                        {asset.contentDescription}
+                                                    </p>
+                                                )}
+                                                <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-1">
+                                                    <div className="flex flex-col gap-1">
+                                                         <div className="flex flex-wrap gap-1">
+                                                            {asset.tags.slice(0, 3).map(tag => (
+                                                                <span key={tag} className="text-[9px] text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">#{tag}</span>
+                                                            ))}
+                                                         </div>
+                                                         <span className="text-[10px] font-mono text-slate-400 mt-1">
+                                                            {asset.source || "Unknown Source"} • P.{asset.pageNumber || 0}
+                                                         </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1699,7 +1548,7 @@ const AssetLibrary: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Upload Drawer and Detail Modal omitted for brevity (unchanged) */}
+                {/* Upload Drawer (Same as before) */}
                 <div className={`fixed inset-y-0 right-0 z-[150] w-96 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out border-l border-slate-200 flex flex-col ${isUploadDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                      <div className="flex items-center justify-between p-6 border-b border-slate-100">
                         <h3 className="text-lg font-bold text-slate-900">Add Asset</h3>
@@ -1707,6 +1556,7 @@ const AssetLibrary: React.FC = () => {
                     </div>
                     <div className="flex-1 p-6 overflow-y-auto">
                         <form onSubmit={handleUploadSubmit} className="space-y-6">
+                            {/* ... Upload form ... */}
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Image</label>
                                 <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-400 cursor-pointer relative bg-slate-50">
@@ -1729,24 +1579,166 @@ const AssetLibrary: React.FC = () => {
                 </div>
                 {isUploadDrawerOpen && <div className="fixed inset-0 bg-black/20 z-[140]" onClick={() => setIsUploadDrawerOpen(false)} />}
 
+                {/* --- DETAIL MODAL (Updated) --- */}
                 {selectedAsset && editingAssetData && !selectedAsset.layoutData && (
                     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity animate-fade-in" onClick={() => setSelectedAsset(null)} />
-                        <div className="relative bg-white w-[85%] md:w-[70%] h-[80%] md:h-[70%] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-scale-up">
-                            <div className="w-full md:w-3/5 h-1/2 md:h-full bg-slate-100 relative">
-                                <img src={editingAssetData.imageUrl} alt={editingAssetData.title} className="w-full h-full object-contain bg-slate-900" />
+                        <div className="relative bg-white w-[90%] md:w-[75%] h-[85%] md:h-[80%] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-scale-up">
+                            
+                            {/* Left: Image */}
+                            <div className="w-full md:w-[55%] h-1/2 md:h-full bg-slate-100 relative border-r border-slate-100">
+                                <img src={editingAssetData.imageUrl} alt={editingAssetData.title} className="w-full h-full object-contain bg-slate-900/5" />
                             </div>
-                            <div className="w-full md:w-2/5 h-1/2 md:h-full bg-white p-8 flex flex-col overflow-y-auto">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div>
-                                        <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded mb-2 inline-block">{editingAssetData.categoryKo}</span>
-                                        <h2 className="text-3xl font-bold text-slate-900 font-serif italic">{editingAssetData.title}</h2>
+
+                            {/* Right: Info & Edit */}
+                            <div className="w-full md:w-[45%] h-1/2 md:h-full bg-white flex flex-col">
+                                {/* Modal Header */}
+                                <div className="flex justify-between items-center px-8 py-6 border-b border-slate-100">
+                                    <div className="flex gap-2">
+                                        <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg uppercase tracking-wide">{editingAssetData.categoryKo}</span>
+                                        {isDetailEditing && <span className="px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg uppercase tracking-wide animate-pulse">Editing</span>}
                                     </div>
-                                    <button onClick={() => setSelectedAsset(null)}><X size={24} /></button>
+                                    <button onClick={() => setSelectedAsset(null)} className="p-1 hover:bg-slate-100 rounded-full transition-colors"><X size={24} className="text-slate-400" /></button>
                                 </div>
-                                <p className="text-sm text-slate-600 mb-6 font-serif">{editingAssetData.contentDescription}</p>
-                                <div className="mt-auto">
-                                    <button className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold">Download</button>
+
+                                <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8">
+                                    {/* Title Section */}
+                                    <div>
+                                        {isDetailEditing ? (
+                                            <input 
+                                                type="text" 
+                                                value={editingAssetData.title}
+                                                onChange={(e) => handleDetailChange('title', e.target.value)}
+                                                className="w-full text-3xl font-bold text-slate-900 font-serif italic border-b border-blue-500 focus:outline-none pb-1 bg-transparent"
+                                            />
+                                        ) : (
+                                            <h2 className="text-3xl font-bold text-slate-900 font-serif italic leading-tight">{editingAssetData.title}</h2>
+                                        )}
+                                    </div>
+
+                                    {/* Attributes Grid */}
+                                    <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Project Type</label>
+                                            {isDetailEditing ? (
+                                                <input 
+                                                    type="text" 
+                                                    value={editingAssetData.projectType || ''}
+                                                    onChange={(e) => handleDetailChange('projectType', e.target.value)}
+                                                    className="w-full text-sm font-medium text-slate-800 border-b border-slate-300 focus:border-blue-500 focus:outline-none pb-1"
+                                                />
+                                            ) : (
+                                                <p className="text-sm font-medium text-slate-800">{editingAssetData.projectType || '-'}</p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Facility Type</label>
+                                            {isDetailEditing ? (
+                                                <input 
+                                                    type="text" 
+                                                    value={editingAssetData.facilityType || ''}
+                                                    onChange={(e) => handleDetailChange('facilityType', e.target.value)}
+                                                    className="w-full text-sm font-medium text-slate-800 border-b border-slate-300 focus:border-blue-500 focus:outline-none pb-1"
+                                                />
+                                            ) : (
+                                                <p className="text-sm font-medium text-slate-800">{editingAssetData.facilityType || '-'}</p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Source</label>
+                                            {isDetailEditing ? (
+                                                <input 
+                                                    type="text" 
+                                                    value={editingAssetData.source || ''}
+                                                    onChange={(e) => handleDetailChange('source', e.target.value)}
+                                                    className="w-full text-sm font-medium text-slate-800 border-b border-slate-300 focus:border-blue-500 focus:outline-none pb-1"
+                                                />
+                                            ) : (
+                                                <p className="text-sm font-medium text-slate-800">{editingAssetData.source || '-'}</p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Page Number</label>
+                                            {isDetailEditing ? (
+                                                <input 
+                                                    type="number" 
+                                                    value={editingAssetData.pageNumber || 0}
+                                                    onChange={(e) => handleDetailChange('pageNumber', parseInt(e.target.value) || 0)}
+                                                    className="w-full text-sm font-medium text-slate-800 border-b border-slate-300 focus:border-blue-500 focus:outline-none pb-1"
+                                                />
+                                            ) : (
+                                                <p className="text-sm font-medium text-slate-800">P.{editingAssetData.pageNumber || 0}</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Tags */}
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Tags</label>
+                                        {isDetailEditing ? (
+                                            <input 
+                                                type="text" 
+                                                value={editingAssetData.tags.join(', ')}
+                                                onChange={(e) => handleDetailChange('tags', e.target.value.split(',').map(t => t.trim()))}
+                                                className="w-full text-sm font-medium text-slate-800 border-b border-slate-300 focus:border-blue-500 focus:outline-none pb-1"
+                                                placeholder="Urban, Eco, Complex..."
+                                            />
+                                        ) : (
+                                            <div className="flex flex-wrap gap-2">
+                                                {editingAssetData.tags.map(tag => (
+                                                    <span key={tag} className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">#{tag}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Description */}
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Description</label>
+                                        {isDetailEditing ? (
+                                            <textarea 
+                                                value={editingAssetData.contentDescription || ''}
+                                                onChange={(e) => handleDetailChange('contentDescription', e.target.value)}
+                                                className="w-full h-32 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg p-3 focus:border-blue-500 focus:outline-none resize-none leading-relaxed"
+                                            />
+                                        ) : (
+                                            <p className="text-sm text-slate-600 leading-relaxed font-serif">
+                                                {editingAssetData.contentDescription || "No description provided."}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Footer Actions */}
+                                <div className="p-6 border-t border-slate-100 bg-slate-50">
+                                    {isDetailEditing ? (
+                                        <div className="flex gap-3">
+                                            <button 
+                                                onClick={() => setIsDetailEditing(false)}
+                                                className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-100 transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button 
+                                                onClick={handleSaveDetail}
+                                                className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors shadow-lg flex items-center justify-center gap-2"
+                                            >
+                                                <Save size={16} /> Save Changes
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex gap-3">
+                                            <button 
+                                                onClick={() => setIsDetailEditing(true)}
+                                                className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-100 transition-colors flex items-center gap-2"
+                                            >
+                                                <FilePenLine size={16} /> Edit Info
+                                            </button>
+                                            <button className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors shadow-lg flex items-center justify-center gap-2">
+                                                <Download size={16} /> Download Asset
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1756,583 +1748,100 @@ const AssetLibrary: React.FC = () => {
         );
     }
 
-    // --- RENDER: Builder Mode (including GRID_VIEW switch) ---
+    // --- RENDER: Builder Mode (RESTORED) ---
     if (viewState === 'BUILDER' || viewState === 'GRID_VIEW') {
         const isGrid = viewState === 'GRID_VIEW';
-
         return (
             <div className="fixed inset-0 w-full h-full bg-[#f8fafc] overflow-hidden flex flex-col z-[100] font-sans">
-                {/* Builder Header - Updated to Magazine Style */}
+                {/* Header */}
                 <div className="h-16 bg-white/80 backdrop-blur-sm border-b border-slate-100 flex items-center justify-between px-6 z-20 flex-shrink-0">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => handleSafeExit('DIAGRAM')} className="p-2 hover:bg-slate-50 rounded-full text-slate-400 hover:text-slate-900 transition-colors">
-                            <ArrowLeft size={18} />
-                        </button>
-                        
+                        <button onClick={() => handleSafeExit('DIAGRAM')} className="p-2 hover:bg-slate-50 rounded-full text-slate-400 hover:text-slate-900 transition-colors"><ArrowLeft size={18} /></button>
                         <div className="h-6 w-[1px] bg-slate-200 mx-2"></div>
-                        
-                        {/* Only show panel toggle in Builder Mode */}
-                        {!isGrid && (
-                            <button 
-                                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                                className={`p-2 rounded-lg transition-colors ${isSidebarOpen ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-                            >
-                                {isSidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
-                            </button>
-                        )}
-
-                        <div className="flex items-center gap-4">
-                            <h2 className="text-xl font-sans font-bold tracking-tight text-slate-900">Layout Builder</h2>
-                            {hasUnsavedChanges && <span className="w-2 h-2 bg-amber-500 rounded-full" title="Unsaved Changes"></span>}
-                        </div>
+                        {!isGrid && <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-lg transition-colors ${isSidebarOpen ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}>{isSidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}</button>}
+                        <div className="flex items-center gap-4"><h2 className="text-xl font-sans font-bold tracking-tight text-slate-900">Layout Builder</h2>{hasUnsavedChanges && <span className="w-2 h-2 bg-amber-500 rounded-full" title="Unsaved Changes"></span>}</div>
                     </div>
-
-                    {/* Center Controls: View Mode */}
                     <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6">
-                        {/* View Mode Group */}
                         <div className="flex items-center bg-slate-100/50 rounded-full p-1 gap-1 border border-slate-200/50 shadow-inner">
-                            <button 
-                                onClick={() => setViewState('BUILDER')}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all text-[10px] font-bold uppercase tracking-wider ${!isGrid ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-900'}`}
-                                title="Edit Layout"
-                            >
-                                <Edit2 size={12} /> Edit
-                            </button>
-                            
+                            <button onClick={() => setViewState('BUILDER')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all text-[10px] font-bold uppercase tracking-wider ${!isGrid ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-900'}`}><Edit2 size={12} /> Edit</button>
                             <div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div>
-
-                            <button 
-                                onClick={() => setViewState('GRID_VIEW')}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all text-[10px] font-bold uppercase tracking-wider ${isGrid ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-900'}`}
-                                title="Grid Overview"
-                            >
-                                <LayoutGrid size={12} /> Grid
-                            </button>
-
+                            <button onClick={() => setViewState('GRID_VIEW')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all text-[10px] font-bold uppercase tracking-wider ${isGrid ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-900'}`}><LayoutGrid size={12} /> Grid</button>
                             <div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div>
-
-                            <button 
-                                onClick={handlePlayPresentation}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-900 hover:bg-white/50"
-                                title="Presentation Play"
-                            >
-                                <Play size={12} /> Play
-                            </button>
+                            <button onClick={handlePlayPresentation} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-900 hover:bg-white/50"><Play size={12} /> Play</button>
                         </div>
-
-                        {/* Pagination (Minimal) - Only in Builder */}
                         {!isGrid && (
                             <div className="flex items-center gap-3">
                                 <button onClick={() => setPageCount(Math.max(1, pageCount - 1))} className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-900 transition-colors"><Minus size={14} /></button>
-                                <div className="text-xs font-bold text-slate-900 font-mono tracking-widest">
-                                    <span className="text-slate-900">{String(currentPageInView).padStart(2, '0')}</span>
-                                    <span className="text-slate-300 mx-1">/</span>
-                                    <span className="text-slate-400">{String(pageCount).padStart(2, '0')}</span>
-                                </div>
+                                <div className="text-xs font-bold text-slate-900 font-mono tracking-widest"><span className="text-slate-900">{String(currentPageInView).padStart(2, '0')}</span><span className="text-slate-300 mx-1">/</span><span className="text-slate-400">{String(pageCount).padStart(2, '0')}</span></div>
                                 <button onClick={() => setPageCount(Math.min(60, pageCount + 1))} className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-900 transition-colors"><Plus size={14} /></button>
                             </div>
                         )}
                     </div>
-                    
-                    {/* Header Actions (Pill Style) */}
                     <div className="flex items-center gap-2 bg-slate-100/50 rounded-full p-1 border border-slate-200/50 shadow-inner">
-                        
-                        {/* Edit Mode Only Tools */}
-                        {!isGrid && (
-                            <>
-                                <button 
-                                    onClick={handleFetchAiInsight}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-emerald-600 hover:bg-white hover:shadow-sm transition-all"
-                                >
-                                    <ListChecks size={12} />
-                                    <span>Checklist AI</span>
-                                </button>
-                                <div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div>
-                                <button 
-                                    onClick={() => setIsProjectSettingsOpen(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:bg-white hover:text-slate-900 transition-all"
-                                >
-                                    <Settings size={12} />
-                                    <span>Context</span>
-                                </button>
-                                <div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div>
-                            </>
-                        )}
-
-                        {/* Grid Mode Only Tools */}
-                        {isGrid && (
-                            <>
-                                <button 
-                                    onClick={handleAnalyzeLayout}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:bg-white hover:text-indigo-600 hover:shadow-sm transition-all"
-                                >
-                                    <Sparkles size={12} /> 
-                                    <span>AI Analysis</span>
-                                </button>
-                                <div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div>
-                                
-                                {/* Balance Button with AI Refresh Popup */}
-                                <div className="relative group/balance">
-                                    <button 
-                                        onClick={() => setShowAnalysisGraph(!showAnalysisGraph)}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${showAnalysisGraph ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:bg-white hover:text-slate-900'}`}
-                                    >
-                                        <BarChart3 size={12} />
-                                        <span>Balance</span>
-                                    </button>
-                                    
-                                    {/* Hover Popup for AI Refresh */}
-                                    <div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover/balance:opacity-100 group-hover/balance:visible transition-all duration-200 z-[60]">
-                                        <div className="bg-white rounded-xl shadow-xl border border-slate-200 p-2 min-w-[140px] flex flex-col gap-1">
-                                            <div className="px-2 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
-                                                Category Check
-                                            </div>
-                                            <button 
-                                                onClick={handleAiPhaseRefresh}
-                                                disabled={isAnalyzingPhases}
-                                                className="flex items-center gap-2 px-2 py-1.5 text-[10px] font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors w-full text-left"
-                                            >
-                                                {isAnalyzingPhases ? <RefreshCw size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                                                <span>AI Re-classify</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div>
-                            </>
-                        )}
-
-                        <button 
-                            onClick={handleSaveMockup}
-                            className="flex items-center gap-1.5 px-4 py-1.5 bg-slate-900 text-white rounded-full text-[10px] font-bold uppercase tracking-wider hover:bg-slate-800 shadow-md transition-all"
-                        >
-                            <Cloud size={12} /> 
-                            <span>{editingAssetId ? 'Update' : 'Save'}</span>
-                        </button>
+                        {!isGrid && (<><button onClick={handleFetchAiInsight} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-emerald-600 hover:bg-white hover:shadow-sm transition-all"><ListChecks size={12} /><span>Checklist AI</span></button><div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div><button onClick={() => setIsProjectSettingsOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:bg-white hover:text-slate-900 transition-all"><Settings size={12} /><span>Context</span></button><div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div></>)}
+                        {isGrid && (<><button onClick={handleAnalyzeLayout} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:bg-white hover:text-indigo-600 hover:shadow-sm transition-all"><Sparkles size={12} /> <span>AI Analysis</span></button><div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div><div className="relative group/balance"><button onClick={() => setShowAnalysisGraph(!showAnalysisGraph)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${showAnalysisGraph ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:bg-white hover:text-slate-900'}`}><BarChart3 size={12} /><span>Balance</span></button><div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover/balance:opacity-100 group-hover/balance:visible transition-all duration-200 z-[60]"><div className="bg-white rounded-xl shadow-xl border border-slate-200 p-2 min-w-[140px] flex flex-col gap-1"><button onClick={handleAiPhaseRefresh} disabled={isAnalyzingPhases} className="flex items-center gap-2 px-2 py-1.5 text-[10px] font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors w-full text-left">{isAnalyzingPhases ? <RefreshCw size={12} className="animate-spin" /> : <Sparkles size={12} />}<span>AI Re-classify</span></button></div></div></div><div className="w-[1px] h-3 bg-slate-200/50 mx-0.5"></div></>)}
+                        <button onClick={handleSaveMockup} className="flex items-center gap-1.5 px-4 py-1.5 bg-slate-900 text-white rounded-full text-[10px] font-bold uppercase tracking-wider hover:bg-slate-800 shadow-md transition-all"><Cloud size={12} /> <span>{editingAssetId ? 'Update' : 'Save'}</span></button>
                     </div>
                 </div>
 
-                {/* --- CONTENT: GRID VIEW --- */}
                 {isGrid ? (
-                    <div 
-                        ref={gridContainerRef}
-                        className={`flex-1 bg-[#2b2b2b] overflow-auto p-12 custom-scrollbar grid-bg relative ${isGridPanning ? 'cursor-grabbing' : 'cursor-default'}`}
-                        onWheel={handleGridWheel}
-                        onMouseDown={handleGridMouseDown}
-                        onMouseMove={handleGridMouseMove}
-                        onMouseUp={handleGridMouseUp}
-                        onMouseLeave={handleGridMouseUp}
-                    >
-                        {/* Alternative Tabs (Floating Top) */}
+                    <div ref={gridContainerRef} className={`flex-1 bg-[#2b2b2b] overflow-auto p-12 custom-scrollbar grid-bg relative ${isGridPanning ? 'cursor-grabbing' : 'cursor-default'}`} onWheel={handleGridWheel} onMouseDown={handleGridMouseDown} onMouseMove={handleGridMouseMove} onMouseUp={handleGridMouseUp} onMouseLeave={handleGridMouseUp}>
                         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40 bg-slate-900/50 backdrop-blur-md p-1 rounded-xl flex items-center gap-1 border border-white/10 shadow-2xl">
-                            {layoutAlternatives.map((alt) => (
-                                <div key={alt.id} className="relative group">
-                                    {editingAltId === alt.id ? (
-                                        <form onSubmit={handleRenameAltSubmit} className="px-2">
-                                            <input 
-                                                type="text" 
-                                                value={editAltName}
-                                                onChange={(e) => setEditAltName(e.target.value)}
-                                                onBlur={handleRenameAltSubmit}
-                                                autoFocus
-                                                className="w-24 px-2 py-1 text-xs bg-white text-slate-900 rounded outline-none"
-                                            />
-                                        </form>
-                                    ) : (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleSwitchAlternative(alt.id); }}
-                                            onContextMenu={(e) => { e.stopPropagation(); if (alt.id !== 'default') handleTabContextMenu(e, alt.id); }}
-                                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-                                                activeAltId === alt.id 
-                                                ? 'bg-blue-600 text-white shadow-md' 
-                                                : 'text-slate-400 hover:text-white hover:bg-white/10'
-                                            }`}
-                                        >
-                                            {alt.id.startsWith('ai-') && <Sparkles size={10} />}
-                                            {alt.name}
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
-                            <div className="w-[1px] h-4 bg-white/10 mx-1"></div>
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); handleAddAlternative(); }}
-                                className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                                title="Save current state as new Alternative"
-                            >
-                                <PlusSquare size={14} />
-                            </button>
+                            {layoutAlternatives.map((alt) => (<div key={alt.id} className="relative group">{editingAltId === alt.id ? (<form onSubmit={handleRenameAltSubmit} className="px-2"><input type="text" value={editAltName} onChange={(e) => setEditAltName(e.target.value)} onBlur={handleRenameAltSubmit} autoFocus className="w-24 px-2 py-1 text-xs bg-white text-slate-900 rounded outline-none" /></form>) : (<button onClick={(e) => { e.stopPropagation(); handleSwitchAlternative(alt.id); }} onContextMenu={(e) => { e.stopPropagation(); if (alt.id !== 'default') handleTabContextMenu(e, alt.id); }} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeAltId === alt.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>{alt.id.startsWith('ai-') && <Sparkles size={10} />}{alt.name}</button>)}</div>))}
+                            <div className="w-[1px] h-4 bg-white/10 mx-1"></div><button onClick={(e) => { e.stopPropagation(); handleAddAlternative(); }} className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"><PlusSquare size={14} /></button>
                         </div>
-
-                        {/* Tab Context Menu */}
-                        {tabContextMenu && (
-                            <div 
-                                className="fixed z-[300] bg-white rounded-lg shadow-xl border border-slate-200 py-1 min-w-[120px] animate-fade-in origin-top-left"
-                                style={{ top: tabContextMenu.y, left: tabContextMenu.x }}
-                            >
-                                <button 
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); handleRenameAltStart(tabContextMenu.altId); }}
-                                    className="w-full flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 text-left transition-colors"
-                                >
-                                    <Edit2 size={12} /> Rename
-                                </button>
-                                <button 
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); handleDeleteAlt(tabContextMenu.altId); }}
-                                    className="w-full flex items-center gap-2 px-4 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 text-left transition-colors"
-                                >
-                                    <Trash2 size={12} /> Delete
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Selection Box */}
-                        {isSelecting && selectionBox && (
-                            <div 
-                                className="absolute border border-blue-500 bg-blue-500/20 pointer-events-none z-50"
-                                style={{
-                                    left: Math.min(selectionBox.startX, selectionBox.endX),
-                                    top: Math.min(selectionBox.startY, selectionBox.endY),
-                                    width: Math.abs(selectionBox.endX - selectionBox.startX),
-                                    height: Math.abs(selectionBox.endY - selectionBox.startY),
-                                }}
-                            />
-                        )}
-
+                        {tabContextMenu && (<div className="fixed z-[300] bg-white rounded-lg shadow-xl border border-slate-200 py-1 min-w-[120px]" style={{ top: tabContextMenu.y, left: tabContextMenu.x }}><button onClick={(e) => { e.stopPropagation(); handleRenameAltStart(tabContextMenu.altId); }} className="w-full flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 text-left"><Edit2 size={12} /> Rename</button><button onClick={(e) => { e.stopPropagation(); handleDeleteAlt(tabContextMenu.altId); }} className="w-full flex items-center gap-2 px-4 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 text-left"><Trash2 size={12} /> Delete</button></div>)}
+                        {isSelecting && selectionBox && (<div className="absolute border border-blue-500 bg-blue-500/20 pointer-events-none z-50" style={{ left: Math.min(selectionBox.startX, selectionBox.endX), top: Math.min(selectionBox.startY, selectionBox.endY), width: Math.abs(selectionBox.endX - selectionBox.startX), height: Math.abs(selectionBox.endY - selectionBox.startY), }} />)}
                         <div className="min-h-full pb-32 relative pt-12">
                             <div className="flex flex-wrap gap-12 justify-center content-start">
                                 {Array.from({ length: pageCount }).map((_, pageIdx) => {
-                                    const pageNumStr = getFormattedPageNumber(pageIdx);
-                                    const meta = pagesMeta[pageIdx];
-                                    
-                                    // Use description for SKIP_COUNT pages if available
-                                    let displayLabel = pageNumStr;
-                                    
-                                    if (meta?.status === 'SKIP_COUNT') {
-                                         displayLabel = meta.description?.trim() ? meta.description : 'ZERO';
-                                    } else if (meta?.status === 'HIDDEN') {
-                                         displayLabel = 'HIDDEN';
-                                    } else {
-                                         displayLabel = `Page ${parseInt(pageNumStr, 10)}`;
-                                    }
-
-                                    // Determine phase color if analysis mode is active
-                                    let phaseColor = null;
-                                    if (showAnalysisGraph) {
-                                        // Priority: AI Phase > Regex Phase
-                                        const phase = meta.aiPhase ? meta.aiPhase : getPhaseFromDescription(meta.description || '', meta.status || 'ACTIVE');
-                                        if (phase !== 'excluded') {
-                                            phaseColor = PHASE_COLORS[phase];
-                                        } else {
-                                            phaseColor = PHASE_COLORS.excluded;
-                                        }
-                                    }
-
-                                    return (
-                                        <div
-                                            key={pageIdx}
-                                            draggable={!isSelecting && !isGridPanning}
-                                            onDragStart={(e) => handlePageDragStart(e, pageIdx)}
-                                            onDragOver={(e) => handlePageDragOver(e, pageIdx)}
-                                            onDrop={(e) => handlePageDrop(e, pageIdx)}
-                                            className={`transition-all duration-300 ${draggedPageIndex === pageIdx ? 'opacity-20 scale-90' : 'opacity-100'}`}
-                                        >
-                                            <GridPageThumbnail 
-                                                pageIndex={pageIdx} 
-                                                meta={pagesMeta[pageIdx]} 
-                                                placedAssets={placedAssets} 
-                                                zoom={gridZoom} 
-                                                isSelected={selectedPageIndices.has(pageIdx)}
-                                                onToggleSelect={togglePageSelection}
-                                                onContextMenu={handlePageContextMenu}
-                                                onDescriptionChange={updatePageDescription}
-                                                themeColors={themeColors}
-                                                pageLabel={displayLabel}
-                                                A3_WIDTH={A3_WIDTH_PX}
-                                                A4_WIDTH={A4_WIDTH_PX}
-                                                CELL_A3={CELL_SIZE_A3}
-                                                CELL_A4={CELL_SIZE_A4}
-                                                analysisColor={phaseColor}
-                                            />
-                                        </div>
-                                    );
+                                    const pageNumStr = getFormattedPageNumber(pageIdx); const meta = pagesMeta[pageIdx];
+                                    let displayLabel = pageNumStr; if (meta?.status === 'SKIP_COUNT') displayLabel = meta.description?.trim() ? meta.description : 'ZERO'; else if (meta?.status === 'HIDDEN') displayLabel = 'HIDDEN'; else displayLabel = `Page ${parseInt(pageNumStr, 10)}`;
+                                    let phaseColor = null; if (showAnalysisGraph) { const phase = meta.aiPhase ? meta.aiPhase : getPhaseFromDescription(meta.description || '', meta.status || 'ACTIVE'); if (phase !== 'excluded') phaseColor = PHASE_COLORS[phase]; else phaseColor = PHASE_COLORS.excluded; }
+                                    return (<div key={pageIdx} draggable={!isSelecting && !isGridPanning} onDragStart={(e) => handlePageDragStart(e, pageIdx)} onDragOver={(e) => handlePageDragOver(e, pageIdx)} onDrop={(e) => handlePageDrop(e, pageIdx)} className={`transition-all duration-300 ${draggedPageIndex === pageIdx ? 'opacity-20 scale-90' : 'opacity-100'}`}><GridPageThumbnail pageIndex={pageIdx} meta={pagesMeta[pageIdx]} placedAssets={placedAssets} zoom={gridZoom} isSelected={selectedPageIndices.has(pageIdx)} onToggleSelect={togglePageSelection} onContextMenu={handlePageContextMenu} onDescriptionChange={updatePageDescription} themeColors={themeColors} pageLabel={displayLabel} A3_WIDTH={A3_WIDTH_PX} A4_WIDTH={A4_WIDTH_PX} CELL_A3={CELL_SIZE_A3} CELL_A4={CELL_SIZE_A4} analysisColor={phaseColor} /></div>);
                                 })}
                             </div>
                         </div>
-
-                        {/* Bottom Analysis Graph Bar */}
-                        {showAnalysisGraph && (
-                            <LayoutAnalysisGraph pagesMeta={pagesMeta} />
-                        )}
+                        {showAnalysisGraph && <LayoutAnalysisGraph pagesMeta={pagesMeta} />}
                     </div>
                 ) : (
-                    /* --- CONTENT: STANDARD BUILDER --- */
                     <div className="flex-1 flex overflow-hidden">
-                        {/* Sidebar: Asset Source (Minimal) */}
                         <div className={`bg-white border-r border-slate-100 flex flex-col z-10 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${isSidebarOpen ? 'w-72 opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'}`}>
-                            {/* ... (Sidebar Search & List - Same as before) ... */}
                             <div className="p-5 flex-shrink-0">
-                                <div className="relative mb-6">
-                                    <Search className="absolute left-0 top-2 text-slate-300" size={14} />
-                                    <input 
-                                        type="text" 
-                                        value={builderSearchTerm}
-                                        onChange={(e) => setBuilderSearchTerm(e.target.value)}
-                                        placeholder="Search assets..." 
-                                        className="w-full pl-6 pr-2 py-1.5 text-xs bg-transparent border-b border-slate-200 text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-slate-900 font-sans transition-colors"
-                                    />
-                                </div>
-                                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                                    {['All', ...Array.from(new Set(assets.filter(a => a.assetType === 'Diagram').map(a => a.category)))].map(cat => (
-                                        <button
-                                            key={cat}
-                                            onClick={() => setBuilderCategoryFilter(cat)}
-                                            className={`px-2 py-1 text-[10px] whitespace-nowrap rounded-md transition-all font-bold ${
-                                                builderCategoryFilter === cat ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-400 hover:text-slate-600'
-                                            }`}
-                                        >
-                                            {cat}
-                                        </button>
-                                    ))}
-                                </div>
+                                <div className="relative mb-6"><Search className="absolute left-0 top-2 text-slate-300" size={14} /><input type="text" value={builderSearchTerm} onChange={(e) => setBuilderSearchTerm(e.target.value)} placeholder="Search assets..." className="w-full pl-6 pr-2 py-1.5 text-xs bg-transparent border-b border-slate-200 text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-slate-900 font-sans transition-colors" /></div>
+                                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">{['All', ...Array.from(new Set(assets.filter(a => a.assetType === 'Diagram').map(a => a.category)))].map(cat => (<button key={cat} onClick={() => setBuilderCategoryFilter(cat)} className={`px-2 py-1 text-[10px] whitespace-nowrap rounded-md transition-all font-bold ${builderCategoryFilter === cat ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-400 hover:text-slate-600'}`}>{cat}</button>))}</div>
                             </div>
-                            
                             <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-4 custom-scrollbar">
-                                {assets.filter(a => a.assetType === 'Diagram' && (builderCategoryFilter === 'All' || a.category === builderCategoryFilter)).length > 0 ? (
-                                    assets.filter(a => a.assetType === 'Diagram' && (builderCategoryFilter === 'All' || a.category === builderCategoryFilter)).map(asset => (
-                                        <div 
-                                            key={asset.id}
-                                            draggable
-                                            onDragStart={(e) => { setDraggedSourceAsset(asset); e.dataTransfer.effectAllowed = "copy"; }}
-                                            className="group cursor-grab active:cursor-grabbing"
-                                        >
-                                            <div className="aspect-[4/3] bg-slate-100 rounded-lg overflow-hidden mb-2 relative border border-transparent group-hover:border-slate-200 transition-all">
-                                                <img src={asset.imageUrl} alt={asset.title} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
-                                            </div>
-                                            <div className="font-sans text-xs font-bold text-slate-700 truncate leading-tight group-hover:text-blue-600 transition-colors">{asset.title}</div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-10 text-slate-400"><p className="text-xs font-sans">No assets found.</p></div>
-                                )}
+                                {assets.filter(a => a.assetType === 'Diagram' && (builderCategoryFilter === 'All' || a.category === builderCategoryFilter)).length > 0 ? (assets.filter(a => a.assetType === 'Diagram' && (builderCategoryFilter === 'All' || a.category === builderCategoryFilter)).map(asset => (<div key={asset.id} draggable onDragStart={(e) => { setDraggedSourceAsset(asset); e.dataTransfer.effectAllowed = "copy"; }} className="group cursor-grab active:cursor-grabbing"><div className="aspect-[4/3] bg-slate-100 rounded-lg overflow-hidden mb-2 relative border border-transparent group-hover:border-slate-200 transition-all"><img src={asset.imageUrl} alt={asset.title} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" /></div><div className="font-sans text-xs font-bold text-slate-700 truncate leading-tight group-hover:text-blue-600 transition-colors">{asset.title}</div></div>))) : (<div className="text-center py-10 text-slate-400"><p className="text-xs font-sans">No assets found.</p></div>)}
                             </div>
                         </div>
-
-                        {/* Main Canvas Area */}
-                        <div 
-                            ref={scrollContainerRef}
-                            onScroll={handleCanvasScroll}
-                            className="flex-1 bg-[#f8fafc] overflow-auto flex flex-col items-center gap-12 pt-8" 
-                            onClick={handlePaperClick}
-                        >
-                            {/* Canvas Header - Synced Description Input */}
+                        <div ref={scrollContainerRef} onScroll={handleCanvasScroll} className="flex-1 bg-[#f8fafc] overflow-auto flex flex-col items-center gap-12 pt-8" onClick={handlePaperClick}>
                             <div className="sticky top-0 z-[60] w-full max-w-[800px] px-8 mb-4">
                                 <div className="bg-white/90 backdrop-blur-md rounded-full shadow-sm border border-slate-200 px-6 py-2 flex items-center gap-4">
-                                    <span className="text-xs font-bold text-slate-400 font-mono">Page {currentPageInView}</span>
-                                    <div className="h-4 w-[1px] bg-slate-200"></div>
-                                    <input 
-                                        type="text" 
-                                        value={pagesMeta[currentPageInView - 1]?.description || ''}
-                                        onChange={(e) => updatePageDescription(currentPageInView - 1, e.target.value)}
-                                        placeholder="Describe the main logic of this page (Synced with Grid)..."
-                                        className="flex-1 bg-transparent text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none"
-                                    />
-                                    <button 
-                                        onClick={handleFetchAiInsight}
-                                        className="text-emerald-500 hover:text-emerald-700 p-1.5 hover:bg-emerald-50 rounded-full transition-colors"
-                                        title="Get Checklist"
-                                    >
-                                        <ListChecks size={16} />
-                                    </button>
+                                    <span className="text-xs font-bold text-slate-400 font-mono">Page {currentPageInView}</span><div className="h-4 w-[1px] bg-slate-200"></div><input type="text" value={pagesMeta[currentPageInView - 1]?.description || ''} onChange={(e) => updatePageDescription(currentPageInView - 1, e.target.value)} placeholder="Describe the main logic of this page (Synced with Grid)..." className="flex-1 bg-transparent text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none" /><button onClick={handleFetchAiInsight} className="text-emerald-500 hover:text-emerald-700 p-1.5 hover:bg-emerald-50 rounded-full transition-colors" title="Get Checklist"><ListChecks size={16} /></button>
                                 </div>
                             </div>
-
                             {Array.from({ length: pageCount }).map((_, pageIdx) => {
-                                // Only render current page or nearby pages for performance if needed, but for now simple list
-                                const paperSize = pagesMeta[pageIdx]?.size || 'A3_LANDSCAPE';
-                                const isA3 = paperSize === 'A3_LANDSCAPE';
-                                const widthPx = isA3 ? A3_WIDTH_PX : A4_WIDTH_PX;
-                                const heightPx = isA3 ? A3_WIDTH_PX / 1.414 : A4_WIDTH_PX * 1.414;
-                                const cellSize = isA3 ? CELL_SIZE_A3 : CELL_SIZE_A4;
-                                const pageNumStr = getFormattedPageNumber(pageIdx);
-
-                                // Update view tracker
-                                // Note: Ideally use IntersectionObserver, but simple click based for now is ok or scroll handler
-                                
+                                const paperSize = pagesMeta[pageIdx]?.size || 'A3_LANDSCAPE'; const isA3 = paperSize === 'A3_LANDSCAPE'; const widthPx = isA3 ? A3_WIDTH_PX : A4_WIDTH_PX; const heightPx = isA3 ? A3_WIDTH_PX / 1.414 : A4_WIDTH_PX * 1.414; const cellSize = isA3 ? CELL_SIZE_A3 : CELL_SIZE_A4; const pageNumStr = getFormattedPageNumber(pageIdx);
                                 return (
                                 <div key={pageIdx} className="relative group/page page-container" data-page-index={pageIdx} onClick={(e) => { e.stopPropagation(); setCurrentPageInView(pageIdx + 1); }}>
-                                    
-                                    {/* Paper Size Control (Left Edge) */}
-                                    <div className="absolute top-0 -left-12 bottom-0 flex flex-col justify-center opacity-0 group-hover/page:opacity-100 transition-opacity">
-                                        <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-1 flex flex-col gap-1">
-                                            <button 
-                                                onClick={() => initiatePageResize([pageIdx], 'A3_LANDSCAPE')}
-                                                className={`text-[9px] font-bold px-2 py-1 rounded ${isA3 ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'}`}
-                                            >
-                                                A3
-                                            </button>
-                                            <button 
-                                                onClick={() => initiatePageResize([pageIdx], 'A4_PORTRAIT')}
-                                                className={`text-[9px] font-bold px-2 py-1 rounded ${!isA3 ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'}`}
-                                            >
-                                                A4
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* The Paper */}
-                                    <div 
-                                        onDragOver={handleDragOverPaper}
-                                        onDrop={(e) => handleDropOnPaper(e, pageIdx)}
-                                        onClick={handlePaperClick}
-                                        className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 relative overflow-visible border border-slate-100/50"
-                                        style={{
-                                            width: `${widthPx}px`,
-                                            height: `${heightPx}px`,
-                                            transform: 'scale(0.8)', 
-                                            transformOrigin: 'top center',
-                                            marginBottom: isA3 ? '-160px' : '-220px',
-                                            backgroundImage: `
-                                                radial-gradient(#e2e8f0 1px, transparent 1px),
-                                                radial-gradient(#f1f5f9 1px, transparent 1px)
-                                            `,
-                                            backgroundSize: `${cellSize * 6}px ${cellSize * 6}px, ${cellSize}px ${cellSize}px`,
-                                        }}
-                                    >
-                                        {/* Placed Assets Layer */}
+                                    <div className="absolute top-0 -left-12 bottom-0 flex flex-col justify-center opacity-0 group-hover/page:opacity-100 transition-opacity"><div className="bg-white border border-slate-200 rounded-lg shadow-sm p-1 flex flex-col gap-1"><button onClick={() => initiatePageResize([pageIdx], 'A3_LANDSCAPE')} className={`text-[9px] font-bold px-2 py-1 rounded ${isA3 ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'}`}>A3</button><button onClick={() => initiatePageResize([pageIdx], 'A4_PORTRAIT')} className={`text-[9px] font-bold px-2 py-1 rounded ${!isA3 ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'}`}>A4</button></div></div>
+                                    <div onDragOver={handleDragOverPaper} onDrop={(e) => handleDropOnPaper(e, pageIdx)} onClick={handlePaperClick} className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 relative overflow-visible border border-slate-100/50" style={{ width: `${widthPx}px`, height: `${heightPx}px`, transform: 'scale(0.8)', transformOrigin: 'top center', marginBottom: isA3 ? '-160px' : '-220px', backgroundImage: `radial-gradient(#e2e8f0 1px, transparent 1px), radial-gradient(#f1f5f9 1px, transparent 1px)`, backgroundSize: `${cellSize * 6}px ${cellSize * 6}px, ${cellSize}px ${cellSize}px`, }}>
                                         {placedAssets.filter(p => p.pageIndex === pageIdx).map((item) => {
                                             const isSelected = selectedPlacedAssetId === item.uid;
                                             return (
-                                                <div
-                                                    key={item.uid}
-                                                    className={`absolute group/item ${isSelected ? 'z-50' : 'z-10'}`}
-                                                    style={{
-                                                        left: `${item.x * cellSize}px`,
-                                                        top: `${item.y * cellSize}px`,
-                                                        width: `${item.w * cellSize}px`,
-                                                        height: `${item.h * cellSize}px`,
-                                                    }}
-                                                    onMouseDown={(e) => handleAssetMouseDown(e, item)}
-                                                    onClick={(e) => e.stopPropagation()} 
-                                                    onContextMenu={(e) => { e.preventDefault(); handleRemoveAsset(item.uid); }}
-                                                >
-                                                    {isSelected && (
-                                                        <div 
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            onMouseDown={(e) => e.stopPropagation()}
-                                                            className="absolute -top-14 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-slate-900/90 backdrop-blur-md text-white p-1.5 rounded-full shadow-2xl z-[60]"
-                                                        >
-                                                            <button 
-                                                                onClick={(e) => { e.stopPropagation(); setIsResizingEnabled(!isResizingEnabled); }}
-                                                                className={`p-2 rounded-full w-8 h-8 flex items-center justify-center transition-colors ${isResizingEnabled ? 'bg-blue-600' : 'hover:bg-white/20'}`}
-                                                                title="Resize"
-                                                            >
-                                                                {isResizingEnabled ? <Check size={14} /> : <Expand size={14} />}
-                                                            </button>
-                                                            
-                                                            <div className="w-[1px] h-4 bg-white/20 mx-1"></div>
-                                                            
-                                                            {/* AI Caption Button */}
-                                                            <div className="relative">
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); setIsArchiSpeakOpen(!isArchiSpeakOpen); }}
-                                                                    className={`p-2 rounded-full w-8 h-8 flex items-center justify-center transition-colors ${isArchiSpeakOpen ? 'bg-indigo-600' : 'hover:bg-white/20'}`}
-                                                                    title="AI Archi-Speak"
-                                                                >
-                                                                    <MessageSquareQuote size={14} />
-                                                                </button>
-                                                                
-                                                                {/* AI Caption Popover */}
-                                                                {isArchiSpeakOpen && (
-                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 bg-white rounded-xl shadow-xl border border-slate-200 p-3 text-slate-800 animate-fade-in origin-bottom" onClick={(e) => e.stopPropagation()}>
-                                                                        <div className="flex flex-col gap-2">
-                                                                            <textarea 
-                                                                                value={archiSpeakDraft}
-                                                                                onChange={(e) => setArchiSpeakDraft(e.target.value)}
-                                                                                placeholder="Write a draft or leave empty for AI auto-generation..."
-                                                                                className="w-full text-xs p-2 bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:border-indigo-500 resize-none h-16"
-                                                                            />
-                                                                            <button 
-                                                                                onClick={handleGenerateArchiSpeak}
-                                                                                disabled={isArchiSpeakLoading}
-                                                                                className="w-full py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                                                                            >
-                                                                                {isArchiSpeakLoading ? <RefreshCw size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                                                                                {archiSpeakDraft.trim() ? "Style Transfer" : "Auto Generate"}
-                                                                            </button>
-                                                                        </div>
-                                                                        
-                                                                        {/* Divider */}
-                                                                        <div className="my-2 border-t border-slate-100"></div>
-                                                                        
-                                                                        {/* Style Controls */}
-                                                                        <div className="flex justify-between items-center">
-                                                                            <div className="flex bg-slate-100 rounded-lg p-0.5">
-                                                                                <button onClick={() => updateAssetCaptionStyle(item.uid, { captionPosition: 'top' })} className={`p-1 rounded ${item.captionPosition === 'top' ? 'bg-white shadow-sm' : 'text-slate-400'}`}><ArrowUp size={10} /></button>
-                                                                                <button onClick={() => updateAssetCaptionStyle(item.uid, { captionPosition: 'bottom' })} className={`p-1 rounded ${item.captionPosition !== 'top' ? 'bg-white shadow-sm' : 'text-slate-400'}`}><ArrowDown size={10} /></button>
-                                                                            </div>
-                                                                            <div className="flex bg-slate-100 rounded-lg p-0.5">
-                                                                                <button onClick={() => updateAssetCaptionStyle(item.uid, { captionAlign: 'left' })} className={`p-1 rounded ${item.captionAlign === 'left' ? 'bg-white shadow-sm' : 'text-slate-400'}`}><AlignLeft size={10} /></button>
-                                                                                <button onClick={() => updateAssetCaptionStyle(item.uid, { captionAlign: 'center' })} className={`p-1 rounded ${item.captionAlign === 'center' ? 'bg-white shadow-sm' : 'text-slate-400'}`}><AlignCenter size={10} /></button>
-                                                                                <button onClick={() => updateAssetCaptionStyle(item.uid, { captionAlign: 'right' })} className={`p-1 rounded ${item.captionAlign === 'right' ? 'bg-white shadow-sm' : 'text-slate-400'}`}><AlignRight size={10} /></button>
-                                                                            </div>
-                                                                            <div className="flex bg-slate-100 rounded-lg p-0.5">
-                                                                                <button onClick={() => updateAssetCaptionStyle(item.uid, { captionSize: 'xs' })} className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${item.captionSize === 'xs' ? 'bg-white shadow-sm' : 'text-slate-400'}`}>S</button>
-                                                                                <button onClick={() => updateAssetCaptionStyle(item.uid, { captionSize: 'sm' })} className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${item.captionSize === 'sm' ? 'bg-white shadow-sm' : 'text-slate-400'}`}>M</button>
-                                                                                <button onClick={() => updateAssetCaptionStyle(item.uid, { captionSize: 'base' })} className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${item.captionSize === 'base' ? 'bg-white shadow-sm' : 'text-slate-400'}`}>L</button>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-
-                                                            <div className="w-[1px] h-4 bg-white/20 mx-1"></div>
-                                                            
-                                                            <button onClick={(e) => { e.stopPropagation(); handleRemoveAsset(item.uid); }} className="p-2 hover:bg-rose-500/80 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
-                                                                <Trash2 size={14} />
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                    
-                                                    {/* Asset Content Wrapper */}
+                                                <div key={item.uid} className={`absolute group/item ${isSelected ? 'z-50' : 'z-10'}`} style={{ left: `${item.x * cellSize}px`, top: `${item.y * cellSize}px`, width: `${item.w * cellSize}px`, height: `${item.h * cellSize}px`, }} onMouseDown={(e) => handleAssetMouseDown(e, item)} onClick={(e) => e.stopPropagation()} onContextMenu={(e) => { e.preventDefault(); handleRemoveAsset(item.uid); }}>
+                                                    {isSelected && (<div onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="absolute -top-14 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-slate-900/90 backdrop-blur-md text-white p-1.5 rounded-full shadow-2xl z-[60]"><button onClick={(e) => { e.stopPropagation(); setIsResizingEnabled(!isResizingEnabled); }} className={`p-2 rounded-full w-8 h-8 flex items-center justify-center transition-colors ${isResizingEnabled ? 'bg-blue-600' : 'hover:bg-white/20'}`} title="Resize">{isResizingEnabled ? <Check size={14} /> : <Expand size={14} />}</button><div className="w-[1px] h-4 bg-white/20 mx-1"></div><div className="relative"><button onClick={(e) => { e.stopPropagation(); setIsArchiSpeakOpen(!isArchiSpeakOpen); }} className={`p-2 rounded-full w-8 h-8 flex items-center justify-center transition-colors ${isArchiSpeakOpen ? 'bg-indigo-600' : 'hover:bg-white/20'}`} title="AI Archi-Speak"><MessageSquareQuote size={14} /></button>{isArchiSpeakOpen && (<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 bg-white rounded-xl shadow-xl border border-slate-200 p-3 text-slate-800 animate-fade-in origin-bottom" onClick={(e) => e.stopPropagation()}><div className="flex flex-col gap-2"><textarea value={archiSpeakDraft} onChange={(e) => setArchiSpeakDraft(e.target.value)} placeholder="Write a draft..." className="w-full text-xs p-2 bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:border-indigo-500 resize-none h-16" /><button onClick={handleGenerateArchiSpeak} disabled={isArchiSpeakLoading} className="w-full py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50">{isArchiSpeakLoading ? <RefreshCw size={10} className="animate-spin" /> : <Sparkles size={10} />}{archiSpeakDraft.trim() ? "Style Transfer" : "Auto Generate"}</button></div><div className="my-2 border-t border-slate-100"></div><div className="flex justify-between items-center"><div className="flex bg-slate-100 rounded-lg p-0.5"><button onClick={() => updateAssetCaptionStyle(item.uid, { captionPosition: 'top' })} className={`p-1 rounded ${item.captionPosition === 'top' ? 'bg-white shadow-sm' : 'text-slate-400'}`}><ArrowUp size={10} /></button><button onClick={() => updateAssetCaptionStyle(item.uid, { captionPosition: 'bottom' })} className={`p-1 rounded ${item.captionPosition !== 'top' ? 'bg-white shadow-sm' : 'text-slate-400'}`}><ArrowDown size={10} /></button></div><div className="flex bg-slate-100 rounded-lg p-0.5"><button onClick={() => updateAssetCaptionStyle(item.uid, { captionAlign: 'left' })} className={`p-1 rounded ${item.captionAlign === 'left' ? 'bg-white shadow-sm' : 'text-slate-400'}`}><AlignLeft size={10} /></button><button onClick={() => updateAssetCaptionStyle(item.uid, { captionAlign: 'center' })} className={`p-1 rounded ${item.captionAlign === 'center' ? 'bg-white shadow-sm' : 'text-slate-400'}`}><AlignCenter size={10} /></button><button onClick={() => updateAssetCaptionStyle(item.uid, { captionAlign: 'right' })} className={`p-1 rounded ${item.captionAlign === 'right' ? 'bg-white shadow-sm' : 'text-slate-400'}`}><AlignRight size={10} /></button></div><div className="flex bg-slate-100 rounded-lg p-0.5"><button onClick={() => updateAssetCaptionStyle(item.uid, { captionSize: 'xs' })} className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${item.captionSize === 'xs' ? 'bg-white shadow-sm' : 'text-slate-400'}`}>S</button><button onClick={() => updateAssetCaptionStyle(item.uid, { captionSize: 'sm' })} className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${item.captionSize === 'sm' ? 'bg-white shadow-sm' : 'text-slate-400'}`}>M</button><button onClick={() => updateAssetCaptionStyle(item.uid, { captionSize: 'base' })} className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${item.captionSize === 'base' ? 'bg-white shadow-sm' : 'text-slate-400'}`}>L</button></div></div></div>)}</div><div className="w-[1px] h-4 bg-white/20 mx-1"></div><button onClick={(e) => { e.stopPropagation(); handleRemoveAsset(item.uid); }} className="p-2 hover:bg-rose-500/80 rounded-full w-8 h-8 flex items-center justify-center transition-colors"><Trash2 size={14} /></button></div>)}
                                                     <div className={`w-full h-full relative transition-all duration-200 flex flex-col ${isSelected ? 'ring-1 ring-blue-500 shadow-xl' : 'hover:ring-1 hover:ring-blue-200'}`}>
-                                                        {/* Top Caption */}
-                                                        {item.caption && item.captionPosition === 'top' && (
-                                                            <div className={`mb-2 w-[120%] -ml-[10%] text-slate-900 leading-tight font-serif
-                                                                ${item.captionAlign === 'center' ? 'text-center' : item.captionAlign === 'right' ? 'text-right' : 'text-left'}
-                                                                ${item.captionSize === 'sm' ? 'text-sm' : item.captionSize === 'base' ? 'text-base' : 'text-[10px]'}
-                                                            `}>
-                                                                {item.caption}
-                                                            </div>
-                                                        )}
-
+                                                        {item.caption && item.captionPosition === 'top' && (<div className={`mb-2 w-[120%] -ml-[10%] text-slate-900 leading-tight font-serif ${item.captionAlign === 'center' ? 'text-center' : item.captionAlign === 'right' ? 'text-right' : 'text-left'} ${item.captionSize === 'sm' ? 'text-sm' : item.captionSize === 'base' ? 'text-base' : 'text-[10px]'}`}>{item.caption}</div>)}
                                                         <img src={item.asset.imageUrl} alt="" className="w-full h-full object-cover pointer-events-none select-none block flex-1" />
-                                                        
-                                                        {/* Bottom Caption */}
-                                                        {item.caption && (!item.captionPosition || item.captionPosition === 'bottom') && (
-                                                            <div className={`mt-2 w-[120%] -ml-[10%] text-slate-900 leading-tight font-serif
-                                                                ${item.captionAlign === 'center' ? 'text-center' : item.captionAlign === 'right' ? 'text-right' : 'text-left'}
-                                                                ${item.captionSize === 'sm' ? 'text-sm' : item.captionSize === 'base' ? 'text-base' : 'text-[10px]'}
-                                                            `}>
-                                                                {item.caption}
-                                                            </div>
-                                                        )}
-
-                                                        {isSelected && isResizingEnabled && (
-                                                            <>
-                                                                <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-blue-600 cursor-nwse-resize z-20 rounded-full shadow-sm ring-2 ring-white" onMouseDown={(e) => handleResizeMouseDown(e, item, 'se')} />
-                                                            </>
-                                                        )}
+                                                        {item.caption && (!item.captionPosition || item.captionPosition === 'bottom') && (<div className={`mt-2 w-[120%] -ml-[10%] text-slate-900 leading-tight font-serif ${item.captionAlign === 'center' ? 'text-center' : item.captionAlign === 'right' ? 'text-right' : 'text-left'} ${item.captionSize === 'sm' ? 'text-sm' : item.captionSize === 'base' ? 'text-base' : 'text-[10px]'}`}>{item.caption}</div>)}
+                                                        {isSelected && isResizingEnabled && (<><div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-blue-600 cursor-nwse-resize z-20 rounded-full shadow-sm ring-2 ring-white" onMouseDown={(e) => handleResizeMouseDown(e, item, 'se')} /></>)}
                                                     </div>
                                                 </div>
                                             );
                                         })}
-                                        
-                                        <div className="absolute bottom-6 left-6 text-[8px] font-bold text-slate-200 tracking-widest uppercase pointer-events-none font-sans">
-                                            {pageNumStr}
-                                        </div>
+                                        <div className="absolute bottom-6 left-6 text-[8px] font-bold text-slate-200 tracking-widest uppercase pointer-events-none font-sans">{pageNumStr}</div>
                                     </div>
                                 </div>
                             )})}
@@ -2340,410 +1849,14 @@ const AssetLibrary: React.FC = () => {
                         </div>
                     </div>
                 )}
-
-                {/* Project Settings Modal */}
-                {isProjectSettingsOpen && (
-                    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in p-6">
-                        <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-scale-up border border-slate-200">
-                            <h3 className="text-lg font-bold text-slate-900 mb-2">Project Context</h3>
-                            <p className="text-xs text-slate-500 mb-6 leading-relaxed">
-                                Define the project context to help AI provide more accurate suggestions.
-                            </p>
-                            
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 ml-1">Project Name</label>
-                                    <input 
-                                        type="text" 
-                                        value={projectInfo.project_name} 
-                                        onChange={e => setProjectInfo({...projectInfo, project_name: e.target.value})} 
-                                        className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900" 
-                                        placeholder="e.g. Seoul Art Center" 
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 ml-1">Facility Type</label>
-                                    <input 
-                                        type="text" 
-                                        value={projectInfo.facility} 
-                                        onChange={e => setProjectInfo({...projectInfo, facility: e.target.value})} 
-                                        className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900" 
-                                        placeholder="e.g. Library, Office" 
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 ml-1">Project Type</label>
-                                    <select 
-                                        value={projectInfo.project_type}
-                                        onChange={e => setProjectInfo({...projectInfo, project_type: e.target.value})}
-                                        className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 appearance-none"
-                                    >
-                                        <option value="공공현상설계">Public Competition (공공현상)</option>
-                                        <option value="사업제안서">Business Proposal (사업제안)</option>
-                                        <option value="턴키/실시설계">Turnkey / Detail Design</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <button 
-                                onClick={() => setIsProjectSettingsOpen(false)}
-                                className="mt-6 w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-slate-800 transition-colors"
-                            >
-                                Save Settings
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* AI Insight Modal (Checklist Only for Header Button) */}
-                {aiInsightState.isOpen && (
-                    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-6">
-                        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden border border-slate-200 animate-scale-up">
-                            
-                            {/* Header */}
-                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-emerald-600 text-white p-1.5 rounded-lg">
-                                        <ListChecks size={16} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-sm font-bold text-slate-900 font-sans">Checklist Assistant</h3>
-                                        <p className="text-[10px] text-slate-500 font-medium">Context: {projectInfo.project_type}</p>
-                                    </div>
-                                </div>
-                                <button onClick={() => setAiInsightState(prev => ({...prev, isOpen: false}))} className="text-slate-400 hover:text-slate-600 transition-colors">
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            {/* Content Area */}
-                            <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
-                                
-                                {/* Input Preview */}
-                                <div className="mb-6 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-2">Page Context</span>
-                                    <p className="text-sm text-slate-700 italic">
-                                        "{pagesMeta[aiInsightState.pageIndex]?.description || '(No description entered)'}"
-                                    </p>
-                                </div>
-
-                                {aiInsightState.loading ? (
-                                    <div className="flex flex-col items-center justify-center h-32 text-slate-400 gap-3">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-                                        <p className="text-xs font-medium animate-pulse">Analyzing context & generating checklist...</p>
-                                    </div>
-                                ) : !aiInsightState.result ? (
-                                    <div className="text-center py-8">
-                                        <p className="text-sm text-slate-500 mb-4">
-                                            Get diagram recommendations based on the current page context.
-                                        </p>
-                                        <button 
-                                            onClick={handleFetchAiInsight}
-                                            className="px-6 py-2.5 rounded-full text-white text-sm font-bold shadow-lg transition-all hover:scale-105 bg-emerald-600 hover:bg-emerald-700"
-                                        >
-                                            Generate Checklist
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4 animate-fade-in-up">
-                                        {/* Result: Checklist */}
-                                        {aiInsightState.result.result_type === 'checklist' && (
-                                            <>
-                                                <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl mb-4">
-                                                    <div className="flex items-start gap-2">
-                                                        <MessageSquareQuote size={16} className="text-emerald-600 mt-0.5" />
-                                                        <p className="text-xs text-emerald-800 font-medium leading-relaxed">
-                                                            {aiInsightState.result.advice}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-3">
-                                                    {aiInsightState.result.items.map((item, idx) => (
-                                                        <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
-                                                            <div className="flex justify-between items-start">
-                                                                <h4 className="text-sm font-bold text-slate-900">{item.name}</h4>
-                                                                <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded">{item.search_keyword}</span>
-                                                            </div>
-                                                            <p className="text-xs text-slate-500">{item.reason}</p>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Analysis Type Selection Modal */}
-                {isAnalysisTypeModalOpen && (
-                    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-6">
-                        <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-scale-up border border-slate-200">
-                            <h3 className="text-lg font-bold text-slate-900 mb-1">Select Analysis Type</h3>
-                            <p className="text-xs text-slate-500 mb-4">Choose the perspective for the AI critique.</p>
-                            
-                            <div className="space-y-3">
-                                <button 
-                                    onClick={() => confirmAnalysisType('public')}
-                                    className="w-full p-4 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all text-left group"
-                                >
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-lg">🏛️</span>
-                                        <span className="font-bold text-slate-900 group-hover:text-indigo-700 text-sm">Public Competition</span>
-                                    </div>
-                                    <span className="text-[10px] text-slate-500 leading-tight block">Focus on public interest, urban flow, and design logic consistency.</span>
-                                </button>
-                                
-                                <button 
-                                    onClick={() => confirmAnalysisType('business')}
-                                    className="w-full p-4 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 hover:shadow-md transition-all text-left group"
-                                >
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-lg">💼</span>
-                                        <span className="font-bold text-slate-900 group-hover:text-emerald-700 text-sm">Business Proposal</span>
-                                    </div>
-                                    <span className="text-[10px] text-slate-500 leading-tight block">Focus on profitability, feasibility, and team capability.</span>
-                                </button>
-                            </div>
-                            
-                            <button 
-                                onClick={() => setIsAnalysisTypeModalOpen(false)}
-                                className="mt-6 w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* AI Analysis Result Modal */}
-                {isAnalysisModalOpen && (
-                    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-6">
-                        <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200 animate-scale-up">
-                            {/* Header */}
-                            <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-slate-900 text-white p-2 rounded-lg">
-                                        <BrainCircuit size={20} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-slate-900 font-sans">Layout Narrative Analysis</h3>
-                                        <p className="text-xs text-slate-500 font-medium">AI-powered architectural logic review</p>
-                                    </div>
-                                </div>
-                                <button onClick={() => setIsAnalysisModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
-                                    <X size={24} />
-                                </button>
-                            </div>
-
-                            {/* Content */}
-                            <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
-                                {isAnalyzing ? (
-                                    <div className="flex flex-col items-center justify-center h-64 text-slate-400 gap-4">
-                                        <div className="relative">
-                                            <div className="w-12 h-12 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <BrainCircuit size={16} className="text-indigo-600 animate-pulse" />
-                                            </div>
-                                        </div>
-                                        <p className="text-sm font-medium animate-pulse">Analyzing presentation logic...</p>
-                                    </div>
-                                ) : analysisResult ? (
-                                    <div className="space-y-8">
-                                        {/* Score & Evaluation */}
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            {/* Score Card */}
-                                            <div className="md:col-span-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden">
-                                                <div className={`absolute top-0 left-0 w-full h-1 ${analysisResult.current_score >= 80 ? 'bg-emerald-500' : analysisResult.current_score >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`} />
-                                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Logic Score</span>
-                                                <div className={`text-6xl font-black mb-2 ${analysisResult.current_score >= 80 ? 'text-emerald-600' : analysisResult.current_score >= 50 ? 'text-amber-500' : 'text-rose-500'}`}>
-                                                    {analysisResult.current_score}
-                                                </div>
-                                                <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-                                                    {analysisResult.current_score >= 80 ? 'Excellent Flow' : analysisResult.current_score >= 50 ? 'Needs Refinement' : 'Critical Issues'}
-                                                </span>
-                                            </div>
-
-                                            {/* Evaluation Text */}
-                                            <div className="md:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative">
-                                                <div className="absolute top-6 left-0 w-1 h-12 bg-slate-900 rounded-r-full"></div>
-                                                <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                                    <span className="text-xl">💬</span> Judge's Review
-                                                </h4>
-                                                <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                                                    "{analysisResult.evaluation}"
-                                                </p>
-                                                {analysisResult.missing_suggestion && (
-                                                    <div className="mt-4 pt-4 border-t border-slate-100 flex gap-3 items-start">
-                                                        <AlertTriangle size={16} className="text-amber-500 mt-0.5 flex-shrink-0" />
-                                                        <div>
-                                                            <span className="text-xs font-bold text-amber-600 block mb-1">Missing Elements Detected</span>
-                                                            <p className="text-xs text-slate-500">{analysisResult.missing_suggestion}</p>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Comparison View */}
-                                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                                            <div className="grid grid-cols-2 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
-                                                <div className="p-4 bg-slate-50/50">Current Sequence</div>
-                                                <div className="p-4 bg-indigo-50/30 text-indigo-600 flex items-center gap-2">
-                                                    <Wand2 size={14} /> AI Recommendation
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 divide-x divide-slate-100">
-                                                {/* Current */}
-                                                <div className="p-4 space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-                                                    {pagesMeta.map((p, idx) => (
-                                                        <div key={idx} className="flex items-center gap-3 p-2 rounded border border-transparent text-slate-400">
-                                                            <span className="font-mono text-xs opacity-50 w-4">{idx + 1}.</span>
-                                                            <span className="text-sm font-medium line-through decoration-slate-300">{p.description || 'Untitled Page'}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                
-                                                {/* Better Sequence */}
-                                                <div className="p-4 space-y-2 max-h-60 overflow-y-auto custom-scrollbar bg-indigo-50/10">
-                                                    {analysisResult.better_sequence.map((item, idx) => (
-                                                        <div key={idx} className="flex items-center gap-3 p-2 bg-white rounded border border-indigo-100 shadow-sm text-slate-700 animate-fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
-                                                            <span className="font-mono text-xs font-bold text-indigo-400 w-4">{idx + 1}.</span>
-                                                            <span className="text-sm font-bold">{item.replace(/^\d+\.\s*/, '')}</span>
-                                                            {idx >= pagesMeta.length && (
-                                                                <span className="ml-auto text-[9px] font-bold bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded">NEW</span>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-                                        <p>Analysis failed. Please try again.</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Footer Actions */}
-                            <div className="p-6 bg-white border-t border-slate-100 flex justify-end gap-3">
-                                <button 
-                                    onClick={() => setIsAnalysisModalOpen(false)}
-                                    className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors"
-                                >
-                                    Close
-                                </button>
-                                {analysisResult && (
-                                    <button 
-                                        onClick={handleApplyAnalysis}
-                                        className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold transition-all shadow-lg flex items-center gap-2 hover:translate-y-[-1px]"
-                                    >
-                                        <PlusSquare size={16} /> Save as New Alternative
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Resize Confirmation Modal */}
-                {pendingPageResize && (
-                    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
-                        <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full">
-                            <div className="flex items-center gap-3 mb-4 text-amber-500">
-                                <AlertTriangle size={24} />
-                                <h3 className="text-lg font-bold text-slate-900">Change Paper Size?</h3>
-                            </div>
-                            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-                                Changing the paper size may shift or hide existing assets on the selected page(s).<br/>
-                                <span className="font-bold">Are you sure you want to proceed?</span>
-                            </p>
-                            <div className="flex gap-3 justify-end">
-                                <button 
-                                    onClick={() => setPendingPageResize(null)}
-                                    className="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-lg"
-                                >
-                                    Cancel
-                                </button>
-                                <button 
-                                    onClick={confirmPageResize}
-                                    className="px-4 py-2 text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 rounded-lg shadow-md"
-                                >
-                                    Confirm Change
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Custom Context Menu */}
-                {contextMenu && (
-                    <div 
-                        className="fixed z-[300] bg-white rounded-lg shadow-xl border border-slate-200 p-2 min-w-[200px] animate-fade-in origin-top-left"
-                        style={{ top: contextMenu.y, left: contextMenu.x }}
-                    >
-                        <div className="px-2 py-1.5 mb-2 border-b border-slate-100">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                {selectedPageIndices.size > 1 ? `${selectedPageIndices.size} Pages Selected` : 'Page Settings'}
-                            </span>
-                        </div>
-                        
-                        <button onClick={() => updatePageStatus('ACTIVE')} className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded transition-colors text-left"><div className="w-4 flex justify-center"><Check size={12} className="opacity-0" /></div> Active Page</button>
-                        <button onClick={() => updatePageStatus('SKIP_COUNT')} className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded transition-colors text-left"><div className="w-4 flex justify-center"><FileBadge size={12} /></div> Skip Counting</button>
-                        <button onClick={() => updatePageStatus('HIDDEN')} className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded transition-colors text-left"><div className="w-4 flex justify-center"><EyeOff size={12} /></div> Hidden</button>
-
-                        <div className="my-2 border-t border-slate-100"></div>
-                        
-                        <div className="px-2 py-1.5">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Section Color</span>
-                            <div className="flex justify-between px-1">
-                                {Object.keys(themeDotColors).map((theme) => (
-                                    <button 
-                                        key={theme}
-                                        onClick={() => updatePageColor(theme as PageColorTheme)}
-                                        className={`w-5 h-5 rounded-full ${themeDotColors[theme as PageColorTheme]} hover:scale-110 transition-transform ring-2 ${pagesMeta[contextMenu.pageIndex]?.colorTheme === theme ? 'ring-offset-1 ring-slate-400' : 'ring-transparent'}`}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Home Exit Mark (Builder) */}
-                <button 
-                    onClick={() => handleSafeExit(undefined, '/')}
-                    className="fixed bottom-6 right-6 z-[110] group flex items-center gap-3"
-                >
-                    <span className="text-slate-400 text-[10px] font-bold tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-sans">BACK TO HOME</span>
-                    <div className="w-10 h-10 bg-white border border-slate-200 shadow-lg rounded-full flex items-center justify-center group-hover:bg-slate-50 transition-all duration-300">
-                        <Home size={16} className="text-slate-600" />
-                    </div>
-                </button>
-
-                {/* Save Mockup Modal (Same as before) */}
-                {isSaveMockupModalOpen && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity animate-fade-in" onClick={() => setIsSaveMockupModalOpen(false)} />
-                        <div className="relative bg-white w-full max-w-[480px] rounded-2xl shadow-2xl overflow-hidden animate-scale-up font-sans transform transition-all">
-                            {/* ... Header ... */}
-                            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
-                                <h3 className="text-xl font-bold text-slate-900">Save Layout</h3>
-                                <button onClick={() => setIsSaveMockupModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100"><X size={18} /></button>
-                            </div>
-                            <form onSubmit={handleSaveMockupSubmit} className="p-8 space-y-6 bg-white">
-                                <div className="space-y-2">
-                                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Title</label>
-                                    <input required type="text" value={mockupSaveForm.title} onChange={e => setMockupSaveForm({...mockupSaveForm, title: e.target.value})} className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-xl px-4 py-3.5 text-sm font-medium text-slate-900" placeholder="Title" />
-                                </div>
-                                {/* ... Other fields ... */}
-                                <div className="pt-4"><button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl">Save</button></div>
-                            </form>
-                        </div>
-                    </div>
-                )}
+                {isProjectSettingsOpen && (<div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in p-6"><div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-scale-up border border-slate-200"><h3 className="text-lg font-bold text-slate-900 mb-2">Project Context</h3><div className="space-y-4"><div><label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 ml-1">Project Name</label><input type="text" value={projectInfo.project_name} onChange={e => setProjectInfo({...projectInfo, project_name: e.target.value})} className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900" /></div><div><label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 ml-1">Facility Type</label><input type="text" value={projectInfo.facility} onChange={e => setProjectInfo({...projectInfo, facility: e.target.value})} className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900" /></div><div><label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 ml-1">Project Type</label><select value={projectInfo.project_type} onChange={e => setProjectInfo({...projectInfo, project_type: e.target.value})} className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 appearance-none"><option value="공공현상설계">Public Competition (공공현상)</option><option value="사업제안서">Business Proposal (사업제안)</option><option value="턴키/실시설계">Turnkey / Detail Design</option></select></div></div><button onClick={() => setIsProjectSettingsOpen(false)} className="mt-6 w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-slate-800 transition-colors">Save Settings</button></div></div>)}
+                {aiInsightState.isOpen && (<div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-6"><div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden border border-slate-200 animate-scale-up"><div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50"><div className="flex items-center gap-3"><div className="bg-emerald-600 text-white p-1.5 rounded-lg"><ListChecks size={16} /></div><div><h3 className="text-sm font-bold text-slate-900 font-sans">Checklist Assistant</h3><p className="text-[10px] text-slate-500 font-medium">Context: {projectInfo.project_type}</p></div></div><button onClick={() => setAiInsightState(prev => ({...prev, isOpen: false}))} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={20} /></button></div><div className="flex-1 overflow-y-auto p-6 bg-slate-50/50"><div className="mb-6 p-4 bg-white border border-slate-200 rounded-xl shadow-sm"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-2">Page Context</span><p className="text-sm text-slate-700 italic">"{pagesMeta[aiInsightState.pageIndex]?.description || '(No description)'}"</p></div>{aiInsightState.loading ? (<div className="flex flex-col items-center justify-center h-32 text-slate-400 gap-3"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div><p className="text-xs font-medium animate-pulse">Analyzing...</p></div>) : !aiInsightState.result ? (<div className="text-center py-8"><button onClick={handleFetchAiInsight} className="px-6 py-2.5 rounded-full text-white text-sm font-bold shadow-lg bg-emerald-600 hover:bg-emerald-700">Generate Checklist</button></div>) : (<div className="space-y-4 animate-fade-in-up">{aiInsightState.result.result_type === 'checklist' && (<><div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl mb-4"><div className="flex items-start gap-2"><MessageSquareQuote size={16} className="text-emerald-600 mt-0.5" /><p className="text-xs text-emerald-800 font-medium leading-relaxed">{aiInsightState.result.advice}</p></div></div><div className="space-y-3">{aiInsightState.result.items.map((item, idx) => (<div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2"><div className="flex justify-between items-start"><h4 className="text-sm font-bold text-slate-900">{item.name}</h4><span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded">{item.search_keyword}</span></div><p className="text-xs text-slate-500">{item.reason}</p></div>))}</div></>)}</div>)}</div></div></div>)}
+                {isAnalysisTypeModalOpen && (<div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-6"><div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-scale-up border border-slate-200"><h3 className="text-lg font-bold text-slate-900 mb-1">Select Analysis Type</h3><div className="space-y-3 mt-4"><button onClick={() => confirmAnalysisType('public')} className="w-full p-4 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"><span className="font-bold text-slate-900 text-sm">🏛️ Public Competition</span></button><button onClick={() => confirmAnalysisType('business')} className="w-full p-4 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left group"><span className="font-bold text-slate-900 text-sm">💼 Business Proposal</span></button></div><button onClick={() => setIsAnalysisTypeModalOpen(false)} className="mt-6 w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">Cancel</button></div></div>)}
+                {isAnalysisModalOpen && (<div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-6"><div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200 animate-scale-up"><div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50"><h3 className="text-lg font-bold text-slate-900">Analysis Result</h3><button onClick={() => setIsAnalysisModalOpen(false)}><X size={24} /></button></div><div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">{isAnalyzing ? <div className="text-center py-20 text-slate-400">Analyzing...</div> : analysisResult ? <div className="space-y-8"><div className="text-center"><div className="text-6xl font-black text-slate-900 mb-2">{analysisResult.current_score}</div><p className="text-sm text-slate-500">{analysisResult.evaluation}</p></div><div className="bg-white p-4 rounded-xl border border-slate-200"><h4 className="font-bold mb-4">Recommendation</h4><ul className="space-y-2">{analysisResult.better_sequence.map((s,i)=><li key={i} className="text-sm text-slate-700 border-b border-slate-100 py-2">{s}</li>)}</ul></div></div> : null}</div><div className="p-6 bg-white border-t border-slate-100 flex justify-end gap-3"><button onClick={() => setIsAnalysisModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50">Close</button>{analysisResult && <button onClick={handleApplyAnalysis} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-lg">Save as New Alternative</button>}</div></div></div>)}
+                {pendingPageResize && (<div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in"><div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full"><h3 className="text-lg font-bold text-slate-900 mb-4">Change Paper Size?</h3><div className="flex gap-3 justify-end"><button onClick={() => setPendingPageResize(null)} className="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-lg">Cancel</button><button onClick={confirmPageResize} className="px-4 py-2 text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 rounded-lg shadow-md">Confirm</button></div></div></div>)}
+                {contextMenu && (<div className="fixed z-[300] bg-white rounded-lg shadow-xl border border-slate-200 p-2 min-w-[200px]" style={{ top: contextMenu.y, left: contextMenu.x }}><button onClick={() => updatePageStatus('ACTIVE')} className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded text-left">Active Page</button><button onClick={() => updatePageStatus('SKIP_COUNT')} className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded text-left">Skip Counting</button><button onClick={() => updatePageStatus('HIDDEN')} className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded text-left">Hidden</button><div className="my-2 border-t border-slate-100"></div><div className="px-2 py-1.5"><span className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Color</span><div className="flex justify-between px-1">{Object.keys(themeDotColors).map((theme) => (<button key={theme} onClick={() => updatePageColor(theme as PageColorTheme)} className={`w-5 h-5 rounded-full ${themeDotColors[theme as PageColorTheme]} hover:scale-110 transition-transform ring-2 ${pagesMeta[contextMenu.pageIndex]?.colorTheme === theme ? 'ring-offset-1 ring-slate-400' : 'ring-transparent'}`} />))}</div></div></div>)}
+                <button onClick={() => handleSafeExit(undefined, '/')} className="fixed bottom-6 right-6 z-[110] group flex items-center gap-3"><span className="text-slate-400 text-[10px] font-bold tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-sans">BACK TO HOME</span><div className="w-10 h-10 bg-white border border-slate-200 shadow-lg rounded-full flex items-center justify-center group-hover:bg-slate-50 transition-all duration-300"><Home size={16} className="text-slate-600" /></div></button>
+                {isSaveMockupModalOpen && (<div className="fixed inset-0 z-[200] flex items-center justify-center p-4"><div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity animate-fade-in" onClick={() => setIsSaveMockupModalOpen(false)} /><div className="relative bg-white w-full max-w-[480px] rounded-2xl shadow-2xl overflow-hidden animate-scale-up font-sans transform transition-all"><div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white"><h3 className="text-xl font-bold text-slate-900">Save Layout</h3><button onClick={() => setIsSaveMockupModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100"><X size={18} /></button></div><form onSubmit={handleSaveMockupSubmit} className="p-8 space-y-6 bg-white"><div className="space-y-2"><label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Title</label><input required type="text" value={mockupSaveForm.title} onChange={e => setMockupSaveForm({...mockupSaveForm, title: e.target.value})} className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-xl px-4 py-3.5 text-sm font-medium text-slate-900" placeholder="Title" /></div><div className="pt-4"><button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl">Save</button></div></form></div></div>)}
             </div>
         );
     }
